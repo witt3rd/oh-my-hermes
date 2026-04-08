@@ -12,7 +12,7 @@ are spelled out in prose rather than delegated to plugin tools.
 ## v2 skills (plugin required)
 
 The skills in `skills/` (parent directory) are v2 — they require the OMH plugin
-at `plugin/` in this repo. Install it by symlinking or copying to
+at `plugins/omh/` in this repo. Install it by symlinking or copying to
 `~/.hermes/plugins/omh/`.
 
 See the root README for installation instructions.

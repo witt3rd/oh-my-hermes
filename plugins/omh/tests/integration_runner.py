@@ -2,7 +2,7 @@
 
 Validates the OMH plugin loads correctly through the actual Hermes PluginManager.
 Run with the Hermes venv:
-    PYTHONPATH="$PWD" ~/.hermes/hermes-agent/venv/bin/python3 plugin/tests/integration_runner.py
+    PYTHONPATH="$PWD" ~/.hermes/hermes-agent/venv/bin/python3 plugins/omh/tests/integration_runner.py
 """
 
 import json

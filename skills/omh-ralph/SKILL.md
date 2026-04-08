@@ -15,7 +15,7 @@ metadata:
 
 # OMH Ralph — Verified Execution (v2)
 
-> **Requires the OMH plugin.** Install `plugin/` from this repo to
+> **Requires the OMH plugin.** Install `plugins/omh/` from this repo to
 > `~/.hermes/plugins/omh/`. For plugin-free operation use `skills/legacy/omh-ralph/`.
 
 ## When to Use

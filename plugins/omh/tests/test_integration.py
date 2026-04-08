@@ -255,7 +255,7 @@ def test_pre_llm_call_hook_via_invoke(plugin_dir, isolated_workdir):
     state_entry.handler({"action": "write", "mode": "ralph", "data": {"active": True, "phase": "execute"}})
 
     # Invoke hook — first turn
-    from plugin.omh_state import _invalidate_list_cache
+    from plugins.omh.omh_state import _invalidate_list_cache
     _invalidate_list_cache()
     results = manager.invoke_hook("pre_llm_call", is_first_turn=True)
     assert len(results) >= 1
@@ -288,7 +288,7 @@ def test_on_session_end_hook_via_invoke(plugin_dir, isolated_workdir):
     state_entry.handler({"action": "write", "mode": "ralph", "data": {"active": True, "phase": "execute"}})
 
     # Invoke on_session_end
-    from plugin.omh_state import _invalidate_list_cache
+    from plugins.omh.omh_state import _invalidate_list_cache
     _invalidate_list_cache()
     manager.invoke_hook("on_session_end")
 
@@ -323,8 +323,8 @@ def test_register_tool_signature_matches_hermes_contract(plugin_dir):
             calls["hooks"].append({"hook_name": hook_name, "callback": callback})
 
     # Ensure the plugin package is importable
-    import plugin
-    plugin.register(MockCtx())
+    import plugins.omh as omh_plugin
+    omh_plugin.register(MockCtx())
 
     # Verify tools
     tool_names = [t["name"] for t in calls["tools"]]
@@ -348,8 +348,8 @@ def test_register_tool_signature_matches_hermes_contract(plugin_dir):
 
 def test_tool_schemas_valid_for_llm():
     """Verify tool schemas have the required fields for Hermes tool-calling."""
-    from plugin.tools.state_tool import OMH_STATE_SCHEMA
-    from plugin.tools.evidence_tool import OMH_EVIDENCE_SCHEMA
+    from plugins.omh.tools.state_tool import OMH_STATE_SCHEMA
+    from plugins.omh.tools.evidence_tool import OMH_EVIDENCE_SCHEMA
 
     for schema in [OMH_STATE_SCHEMA, OMH_EVIDENCE_SCHEMA]:
         assert "name" in schema, "Schema missing 'name'"

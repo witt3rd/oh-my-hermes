@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-import plugin.omh_config as omh_config_module
-from plugin.omh_state import (
+import plugins.omh.omh_config as omh_config_module
+from plugins.omh.omh_state import (
     state_cancel,
     state_check,
     state_check_cancel,
@@ -16,7 +16,7 @@ from plugin.omh_state import (
     state_read,
     state_write,
 )
-from plugin.tools.state_tool import omh_state_handler
+from plugins.omh.tools.state_tool import omh_state_handler
 
 
 @pytest.fixture(autouse=True)
@@ -29,7 +29,7 @@ def isolated_state(tmp_path, monkeypatch):
         "cancel_ttl_seconds": 30,
         "evidence": {},
     }
-    from plugin import omh_state as mod
+    from plugins.omh import omh_state as mod
     mod._list_cache["result"] = None
     mod._list_cache["expires_at"] = 0.0
     yield
@@ -178,7 +178,7 @@ def test_cancel_without_existing_state():
 def test_cancel_without_existing_state_no_phantom_active():
     # ARCH-004: state_cancel on a non-existent mode must not create phantom active state
     state_cancel("ghost-mode", reason="preemptive")
-    from plugin import omh_state as mod
+    from plugins.omh import omh_state as mod
     mod._list_cache["expires_at"] = 0  # force cache miss
     result = state_list_active()
     mode_names = [m["mode"] for m in result["modes"]]
@@ -198,7 +198,7 @@ def test_list_active_shows_active_modes():
     state_write("ralph", {"active": True, "phase": "execute"})
     state_write("autopilot", {"active": False, "phase": "complete"})
 
-    from plugin import omh_state as mod
+    from plugins.omh import omh_state as mod
     mod._list_cache["expires_at"] = 0  # invalidate cache
 
     result = state_list_active()
@@ -249,7 +249,7 @@ def test_handler_clear():
 
 def test_handler_list():
     state_write("ralph", {"active": True})
-    from plugin import omh_state as mod
+    from plugins.omh import omh_state as mod
     mod._list_cache["expires_at"] = 0
     result = json.loads(omh_state_handler({"action": "list"}))
     assert "modes" in result
@@ -297,7 +297,7 @@ def test_list_active_cache_hit_returns_stale_result():
     # Write a second mode directly to disk (bypassing state_write) so the
     # in-process cache is NOT invalidated — simulating a write from another process.
     import json as _json
-    from plugin import omh_state as mod
+    from plugins.omh import omh_state as mod
     Path(".omh/state").mkdir(parents=True, exist_ok=True)
     Path(".omh/state/autopilot-state.json").write_text(
         _json.dumps({"_meta": {"written_at": mod._now_iso(), "mode": "autopilot",
@@ -315,7 +315,7 @@ def test_list_active_cache_invalidated_after_write():
     state_write("ralph", {"active": True})
     state_list_active()  # populate cache
     state_write("autopilot", {"active": True})  # should invalidate
-    from plugin import omh_state as mod
+    from plugins.omh import omh_state as mod
     assert mod._list_cache["expires_at"] == 0.0  # write calls _invalidate_list_cache
 
 

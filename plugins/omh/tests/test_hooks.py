@@ -6,10 +6,10 @@ from unittest.mock import patch
 
 import pytest
 
-import plugin.omh_config as omh_config_module
-from plugin.hooks.llm_hooks import pre_llm_call
-from plugin.hooks.session_hooks import on_session_end
-from plugin.omh_state import state_read, state_write
+import plugins.omh.omh_config as omh_config_module
+from plugins.omh.hooks.llm_hooks import pre_llm_call
+from plugins.omh.hooks.session_hooks import on_session_end
+from plugins.omh.omh_state import state_read, state_write
 
 
 @pytest.fixture(autouse=True)
@@ -22,7 +22,7 @@ def isolated(tmp_path, monkeypatch):
         "evidence": {},
     }
     # Invalidate list cache
-    from plugin import omh_state as mod
+    from plugins.omh import omh_state as mod
     mod._list_cache["expires_at"] = 0
     yield
     omh_config_module._config_cache = None
@@ -50,7 +50,7 @@ def test_pre_llm_call_no_active_modes_subsequent():
 def test_pre_llm_call_first_turn_full_context():
     state_write("ralph", {"active": True, "phase": "execute"})
 
-    from plugin import omh_state as mod
+    from plugins.omh import omh_state as mod
     mod._list_cache["expires_at"] = 0
 
     result = pre_llm_call(is_first_turn=True)
@@ -66,7 +66,7 @@ def test_pre_llm_call_first_turn_lists_all_modes():
     state_write("ralph", {"active": True, "phase": "execute"})
     state_write("autopilot", {"active": True, "phase": "execution"})
 
-    from plugin import omh_state as mod
+    from plugins.omh import omh_state as mod
     mod._list_cache["expires_at"] = 0
 
     result = pre_llm_call(is_first_turn=True)
@@ -82,7 +82,7 @@ def test_pre_llm_call_first_turn_lists_all_modes():
 def test_pre_llm_call_subsequent_brief():
     state_write("ralph", {"active": True, "phase": "verify"})
 
-    from plugin import omh_state as mod
+    from plugins.omh import omh_state as mod
     mod._list_cache["expires_at"] = 0
 
     result = pre_llm_call(is_first_turn=False)
@@ -101,7 +101,7 @@ def test_pre_llm_call_subsequent_brief():
 def test_on_session_end_marks_interrupted():
     state_write("ralph", {"active": True, "phase": "execute", "iteration": 3})
 
-    from plugin import omh_state as mod
+    from plugins.omh import omh_state as mod
     mod._list_cache["expires_at"] = 0
 
     on_session_end()
@@ -113,7 +113,7 @@ def test_on_session_end_marks_interrupted():
 def test_on_session_end_ignores_inactive_modes():
     state_write("ralph", {"active": False, "phase": "complete"})
 
-    from plugin import omh_state as mod
+    from plugins.omh import omh_state as mod
     mod._list_cache["expires_at"] = 0
 
     on_session_end()
@@ -133,11 +133,11 @@ def test_on_session_end_no_modes_noop():
 # ---------------------------------------------------------------------------
 
 def test_pre_llm_call_exception_safe():
-    with patch("plugin.hooks.llm_hooks.state_list_active", side_effect=Exception("boom")):
+    with patch("plugins.omh.hooks.llm_hooks.state_list_active", side_effect=Exception("boom")):
         result = pre_llm_call(is_first_turn=True)
     assert result is None
 
 
 def test_on_session_end_exception_safe():
-    with patch("plugin.hooks.session_hooks.state_list_active", side_effect=Exception("boom")):
+    with patch("plugins.omh.hooks.session_hooks.state_list_active", side_effect=Exception("boom")):
         on_session_end()  # must not raise

@@ -5,8 +5,8 @@ import sys
 
 import pytest
 
-import plugin.omh_config as omh_config_module
-from plugin.tools.evidence_tool import omh_evidence_handler
+import plugins.omh.omh_config as omh_config_module
+from plugins.omh.tools.evidence_tool import omh_evidence_handler
 
 
 @pytest.fixture(autouse=True)

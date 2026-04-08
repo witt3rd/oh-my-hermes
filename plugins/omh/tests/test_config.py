@@ -1,8 +1,8 @@
 """Tests for omh_config.py — _deep_merge and get_config edge cases."""
 
 import pytest
-import plugin.omh_config as omh_config_module
-from plugin.omh_config import _deep_merge, get_config, reload_config
+import plugins.omh.omh_config as omh_config_module
+from plugins.omh.omh_config import _deep_merge, get_config, reload_config
 
 
 @pytest.fixture(autouse=True)
