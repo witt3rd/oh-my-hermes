@@ -1,0 +1,48 @@
+# Oh My Hermes plugin configuration
+# Copy to ~/.hermes/plugins/omh/config.yaml
+
+# State directory (relative to cwd)
+state_dir: .omh/state
+logs_dir: .omh/logs
+
+# Staleness threshold in seconds (2 hours)
+staleness_threshold: 7200
+
+# Evidence gathering — allowed command prefixes
+# Commands not matching any prefix are rejected
+evidence_allowlist:
+  - "npm "
+  - "npx "
+  - "yarn "
+  - "pnpm "
+  - "cargo "
+  - "make"
+  - "cmake "
+  - "go "
+  - "python "
+  - "python3 "
+  - "pytest"
+  - "pip "
+  - "uv "
+  - "ruff "
+  - "mypy "
+  - "tsc"
+  - "eslint"
+  - "prettier"
+  - "rustfmt"
+  - "clippy"
+  - "gradle"
+  - "mvn "
+  - "dotnet "
+  - "mix "
+  - "bundle "
+  - "rake "
+
+# Max commands per evidence gathering call
+evidence_max_commands: 10
+
+# Evidence output truncation (chars, keep the tail)
+evidence_truncate: 2000
+
+# Role prompt directory (for future omh_delegate tool)
+# role_prompts_dir: ~/.hermes/skills/omh-ralplan/references
