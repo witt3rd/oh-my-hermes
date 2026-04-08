@@ -4,7 +4,7 @@ description: >
   Consensus planning via multi-agent debate. Three perspectives (Planner, Architect, Critic)
   iterate until consensus or max rounds. Produces a vetted implementation plan. Use for any
   non-trivial task where a single perspective might miss blind spots.
-version: 0.1.0
+version: 2.0.0
 tags: [planning, multi-agent, consensus, architecture]
 category: omh
 metadata:
@@ -108,18 +108,21 @@ Also write a summary to the user with the key design decisions that emerged from
 
 ## State Management
 
-State is tracked in `.omh/state/ralplan-state.json`:
-```json
-{
-  "goal": "...",
-  "round": 1,
-  "phase": "planner|architect|critic|complete",
-  "consensus": false,
-  "plan_file": ".omh/plans/ralplan-{slug}.md"
-}
+If the `omh` plugin is available, use it for state:
+```
+omh_state(action="write", mode="ralplan", data={
+    "goal": "...", "round": 1,
+    "phase": "planner|architect|critic|complete",
+    "consensus": false, "plan_file": ".omh/plans/ralplan-{slug}.md"
+})
 ```
 
-If a ralplan session is interrupted, check for existing state and resume from the last completed phase.
+If the plugin is not available, write `.omh/state/ralplan-state.json` manually.
+
+If a ralplan session is interrupted, check for existing state and resume from the last completed phase:
+```
+state = omh_state(action="read", mode="ralplan")
+```
 
 ## Deliberate Mode (--deliberate)
 

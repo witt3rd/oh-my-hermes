@@ -5,7 +5,7 @@ description: >
   Asks targeted questions across four dimensions (Goal, Constraints, Success Criteria,
   Existing Context), tracks coverage with coarse bins, and produces a consumer-ready
   specification. Exit is always user-confirmed. Use when goals are vague or underspecified.
-version: 1.0.0
+version: 2.0.0
 tags: [interview, requirements, socratic, ambiguity, specification]
 category: omh
 metadata:
@@ -44,10 +44,14 @@ and file writes for state and spec output.
 
 Before starting a new interview:
 
-1. Check if `.omh/state/interview-*.json` exists with `status: "active"` or `status: "paused"`
-2. If found, tell the user: "There's an active interview for '{project_name}' from {started_at}. Resume it, or abandon and start fresh?"
-3. If resuming: load the state, read the round summaries to reconstruct context, and continue from the last completed round
-4. If abandoning: set status to "abandoned" in the old state file, then proceed to Phase 1
+1. Check for active interview state:
+   ```
+   state = omh_state(action="check", mode="interview")
+   ```
+   If `omh_state` is not available, check `.omh/state/interview-*-state.json` manually.
+2. If found and active, tell the user: "There's an active interview for '{project_name}'. Resume or start fresh?"
+3. If resuming: `omh_state(action="read", mode="interview")` — read round summaries to reconstruct context
+4. If abandoning: `omh_state(action="write", mode="interview", data={...status: "abandoned"})`, proceed to Phase 1
 5. If no active state found: proceed to Phase 1
 
 ### Phase 1: Opening
@@ -110,12 +114,11 @@ the bin at its current level rather than prematurely lowering it.
 
 **Step 5 — Update state**
 
-Write to the state file:
-- Increment `current_round`
-- Add a round summary to `rounds[]` (max ~200 words — capture what was learned, not
-  the full verbatim exchange)
-- Update `coverage` bins
-- Update `updated_at` timestamp
+Update the interview state (increment round, add summary, update coverage):
+```
+omh_state(action="write", mode="interview", data={...updated state with new round...})
+```
+Each round summary: max ~200 words — capture what was learned, not the full exchange.
 
 **Step 6 — Present coverage and ask to continue**
 

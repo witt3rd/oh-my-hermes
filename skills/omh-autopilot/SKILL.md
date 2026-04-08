@@ -5,12 +5,12 @@ description: >
   ralplan, and ralph into 6 phases: Requirements → Planning → Execution → QA →
   Validation → Cleanup. One phase step per invocation — the caller re-invokes
   until complete. Detects existing artifacts to skip completed phases.
-version: 1.0.0
+version: 2.0.0
 tags: [autopilot, pipeline, autonomous, end-to-end, composition]
 category: omh
 metadata:
   hermes:
-    requires_toolsets: [terminal]
+    requires_toolsets: [terminal, omh]
 ---
 
 # OMH Autopilot — End-to-End Autonomous Pipeline
@@ -19,39 +19,28 @@ metadata:
 
 - End-to-end feature implementation from idea to verified, reviewed code
 - The user says: "autopilot", "build me", "handle it all", "e2e this"
-- You want the full pipeline: requirements → plan → implement → QA → validate
 
 ## When NOT to Use
 
 - Single-file changes or trivial tasks (just do them)
-- You want to stay in one continuous session (autopilot is multi-session by design)
-- You only need planning (use omh-ralplan) or only need execution (use omh-ralph)
+- You want to stay in one continuous session (autopilot is multi-session)
+- You only need planning (omh-ralplan) or execution (omh-ralph)
+
+## Prerequisites
+
+- The `omh` plugin must be installed (`~/.hermes/plugins/omh/`)
 
 ## Architecture: One Phase Step Per Invocation
 
-Each autopilot invocation reads state, performs ONE unit of work, updates state, and
-exits. The caller (user, cron, shell script) re-invokes until complete.
-
-**Why?** Ralph was designed for fresh context per invocation. Running ralph's full
-procedure 15 times in one session accumulates 80-180K tokens, exhausting context
-before QA/Validation phases run. The multi-session design preserves fresh context
-at every level.
-
-**Why not delegate ralph as a subagent?** Hermes enforces MAX_DEPTH = 2 with no
-recursive delegation. Autopilot at depth 1, ralph's executor/verifier at depth 2.
-Delegating ralph as a subagent (depth 2) would push executor/verifier to depth 3 — blocked.
+Each autopilot invocation reads state, does ONE unit of work, exits. The caller re-invokes.
+This preserves fresh context at every level — including during the ralph loop.
 
 ```
-Invocation 1:   Phase 0 — requirements (or skip if spec exists)
-Invocation 2:   Phase 1 — planning (or skip if plan exists)
-Invocation 3:   Phase 2 — ralph iteration 1
-Invocation 4:   Phase 2 — ralph iteration 2
-...
-Invocation N:   Phase 2 — ralph complete
-Invocation N+1: Phase 3 — QA cycle 1                [FRESH SESSION]
-...
-Invocation M:   Phase 4 — validation round 1         [FRESH SESSION]
-...
+Invocation 1:   Phase 0 — requirements (or skip)
+Invocation 2:   Phase 1 — planning (or skip)
+Invocations 3-N: Phase 2 — ralph iterations (one per call)
+Invocation N+1: Phase 3 — QA cycle         [FRESH SESSION]
+Invocation M:   Phase 4 — validation round  [FRESH SESSION]
 Final:          Phase 5 — cleanup → complete
 ```
 
@@ -61,192 +50,138 @@ See `references/caller-examples.md` for how to drive the loop.
 
 ### On Every Invocation: Dispatch
 
-1. **Check for state**: Read `.omh/state/autopilot-state.json`
-   - **Found**: Go to the handler for the current `phase`
-   - **Not found**: Fresh start — go to Smart Detection below
+```
+state = omh_state(action="read", mode="autopilot")
+```
 
-2. **Check context_checkpoint**: If `true`, clear the flag, update state, and exit.
-   The next invocation will be a fresh session. (In practice, since each invocation
-   IS a fresh session when the caller loops, this flag confirms the phase boundary.)
-
-3. **Check staleness**: If `last_updated_at` > 2 hours ago, warn:
-   "Autopilot state is {N} hours old. Continue or fresh start?"
-
-4. **Check pause**: If `pause_after_phase` matches the current phase and
-   the phase just completed, set `phase: "paused"` and exit for user review.
-
-5. **Dispatch** to the current phase handler.
+- **Not found**: Fresh start → Smart Detection (below)
+- **Found**: Check `context_checkpoint` flag → if true, clear it and exit (phase boundary)
+- Check staleness: `state.stale = true` → warn, offer fresh start
+- Check pause: if `pause_after_phase` matches current completed phase → set phase="paused", exit
+- Dispatch to current phase handler
 
 ### Smart Detection (Fresh Start)
 
-When no autopilot-state.json exists, detect existing artifacts:
+When no autopilot state exists, detect artifacts:
 
-1. `.omh/specs/*-spec.md` with `status: confirmed` → create state at Phase 1, log "Skipping Phase 0: confirmed spec found"
-2. `.omh/plans/ralplan-*.md` or `.omh/plans/consensus-*.md` → create state at Phase 2, log "Skipping Phases 0-1: consensus plan found"
-3. `.omh/state/ralph-state.json` with `phase: "complete"` → create state at Phase 3, log "Skipping Phases 0-2: ralph execution complete"
-4. Nothing found → create state at Phase 0
+1. Confirmed spec in `.omh/specs/*-spec.md` → create state at Phase 1
+2. Consensus plan in `.omh/plans/ralplan-*.md` → create state at Phase 2
+3. Ralph complete (`omh_state(action="check", mode="ralph")` → phase="complete") → create state at Phase 3
+4. Nothing → create state at Phase 0
 
-Also check: if `ralph-state.json` exists with `active: true` but no autopilot-state.json,
-warn: "An active ralph session exists. Resume it under autopilot, or cancel and start fresh?"
+Check for active ralph: `omh_state(action="check", mode="ralph")` → if active, warn about existing session.
 
-Generate `session_id` (UUID), set `started_at`, create autopilot-state.json.
+```
+omh_state(action="write", mode="autopilot", data={
+    "phase": "requirements", "goal": "...", "ralph_iteration": 0,
+    "qa_cycle": 0, "max_qa_cycles": 5, "validation_round": 0,
+    "max_validation_rounds": 3, "validation_verdicts": {},
+    "skip_qa": false, "skip_validation": false, "pause_after_phase": null
+})
+```
 
 ### Phase 0: Requirements
 
 **Goal**: Ensure a confirmed spec exists.
 
-1. Check for confirmed spec at `.omh/specs/*-spec.md` (YAML frontmatter `status: confirmed`)
-2. If found: set `spec_file`, advance to Phase 1, exit
-3. If not found, assess the user's input:
-   - **Concrete** (contains file paths, function names, specific technologies, quantified requirements): Generate an inline spec at `.omh/specs/{slug}-spec.md` with `status: confirmed`. Advance to Phase 1, exit.
-   - **Vague** (abstract goals, no technical anchors): Load `omh-deep-interview` and follow its procedure. **This phase is interactive** — the user must participate in the interview. When the interview produces a confirmed spec, advance to Phase 1, exit.
+1. Check `.omh/specs/*-spec.md` with `status: confirmed` → found? Set `spec_file`, advance to Phase 1, exit
+2. Not found — assess input:
+   - **Concrete** (file paths, function names, specific tech): generate inline spec, advance
+   - **Vague**: Load `omh-deep-interview` and follow it. **This phase is interactive.**
+3. Update state: `phase: "planning"`, `spec_file: "<path>"`. Exit.
 
-**Important**: For fully autonomous execution, run `omh-deep-interview` separately first. Autopilot will detect the confirmed spec and skip Phase 0 entirely.
-
-Update state: `phase: "planning"`, `spec_file: "<path>"`. Exit.
+**For fully autonomous runs**: run `omh-deep-interview` separately first.
 
 ### Phase 1: Planning
 
 **Goal**: Ensure a consensus plan exists.
 
-1. Check for existing plan at `.omh/plans/ralplan-*.md` or `.omh/plans/consensus-*.md`
-2. If found: set `plan_file`, advance to Phase 2, exit
-3. If not found: Load `omh-ralplan` and follow its procedure, using the spec from Phase 0 as the goal input
+1. Check `.omh/plans/ralplan-*.md` → found? Set `plan_file`, advance to Phase 2, exit
+2. Not found: Load `omh-ralplan`, follow its procedure with the spec as input
+3. Update state: `phase: "execution"`, `plan_file`, `ralph_iteration: 0`, `context_checkpoint: true`. Exit.
 
-Update state: `phase: "execution"`, `plan_file: "<path>"`, `ralph_iteration: 0`, `context_checkpoint: true`. Exit.
+### Phase 2: Execution (Ralph Iterations)
 
-The `context_checkpoint` ensures Phase 2 starts in a fresh session.
+Each invocation performs **exactly ONE ralph iteration**:
 
-### Phase 2: Execution (Ralph Loop)
-
-**Goal**: All tasks from the plan are implemented and individually verified.
-
-Each invocation during Phase 2 performs **exactly ONE ralph iteration**:
-
-1. Load `omh-ralph` skill
-2. Follow ralph's procedure — it will:
-   - Read ralph-state.json and ralph-tasks.json
-   - On first invocation: parse the plan into ralph-tasks.json (planning gate)
-   - Pick the next eligible task
-   - Delegate to executor subagent
-   - Gather evidence (run builds/tests)
-   - Delegate to verifier subagent
-   - Update ralph state
-3. After ralph's procedure completes, read `.omh/state/ralph-state.json`:
-   - `active: true`, `phase: "execute"` or `"verify"` → increment `ralph_iteration`, exit (caller re-invokes)
-   - `phase: "complete"` → advance autopilot to Phase 3
-   - `phase: "blocked"` → set autopilot `phase: "blocked"`, report blockers, exit
-
-Update state: `ralph_iteration++`, truncate evidence to 2000 chars in `evidence_summary`. Exit.
-
-On ralph completion: `phase: "qa"`, `qa_cycle: 0`, `context_checkpoint: true`. Exit.
+1. Load `omh-ralph` skill, follow its procedure (picks one task, executes, verifies)
+2. After ralph completes its step, check ralph status:
+   ```
+   ralph = omh_state(action="check", mode="ralph")
+   ```
+   - `active=true` → increment `ralph_iteration`, exit (caller re-invokes)
+   - `phase="complete"` → advance: `phase: "qa"`, `context_checkpoint: true`, exit
+   - `phase="blocked"` → set autopilot `phase: "blocked"`, report, exit
 
 ### Phase 3: QA Cycling
 
-**Goal**: The integrated system builds, passes all tests, and passes linting.
+Each invocation performs **ONE QA cycle**. Starts in fresh session (context_checkpoint).
 
-Each invocation performs **ONE QA cycle**. Phase 3 starts in a fresh session (context_checkpoint).
+If `skip_qa: true` → advance to Phase 4, exit.
 
-If `skip_qa: true` in state: advance to Phase 4, exit.
-
-1. Run the project's build command. Capture output.
-2. Run the project's test suite. Capture output.
-3. Run linting/type-checking. Capture output.
-4. If ALL pass: advance to Phase 4. Set `context_checkpoint: true`. Exit.
-5. If failures:
-   - Increment `qa_cycle`
-   - Construct error fingerprint, check `qa_error_history` for 3-strike
-   - If 3-strike: set `phase: "blocked"`, report the recurring issue, exit
-   - If `qa_cycle > max_qa_cycles` (default 5): set `phase: "blocked"`, exit
-   - Delegate diagnosis to architect subagent (read-only analysis of failures)
-   - Delegate fix to executor subagent (with architect's diagnosis)
-   - Update state. Exit. (Next invocation re-runs QA.)
-
-Update state: `qa_cycle++`, `evidence_summary` (truncated). Exit.
+1. Gather evidence:
+   ```
+   evidence = omh_gather_evidence(commands=["npm run build", "npm test", "npm run lint"])
+   ```
+2. If `evidence.all_pass` → advance: `phase: "validation"`, `context_checkpoint: true`, exit
+3. If failures:
+   - Increment `qa_cycle`. Check 3-strike on `qa_error_history`. If triggered → phase="blocked", exit
+   - If `qa_cycle > max_qa_cycles` (default 5) → phase="blocked", exit
+   - Delegate diagnosis to architect subagent (read-only)
+   - Delegate fix to executor subagent
+   - Update state, exit (next invocation re-runs QA)
 
 ### Phase 4: Multi-Reviewer Validation
 
-**Goal**: Three independent reviewers approve the complete implementation.
+Each invocation performs **ONE validation round**. Starts in fresh session.
 
-Each invocation performs **ONE validation round**. Phase 4 starts in a fresh session.
+If `skip_validation: true` → advance to Phase 5, exit.
 
-If `skip_validation: true` in state: advance to Phase 5, exit.
-
-1. Gather fresh evidence: run build + tests, capture output
-2. Delegate 3 parallel reviews via `delegate_task` (batch mode, all 3 concurrent):
-
-```
-delegate_task(tasks=[
-    {goal: "Architectural review of all changes", context: "{role-architect.md}\n\n{spec + plan + files changed + evidence}"},
-    {goal: "Security review of all changes", context: "{role-security-reviewer.md}\n\n{spec + files changed + evidence}"},
-    {goal: "Code quality review of all changes", context: "{role-code-reviewer.md}\n\n{files changed + evidence}"}
-])
-```
-
-Load role prompts:
-- Architect: `omh-ralplan/references/role-architect.md`
-- Security: `omh-ralplan/references/role-security-reviewer.md`
-- Code reviewer: `omh-autopilot/references/role-code-reviewer.md`
-
-3. Parse verdicts. Record in `validation_verdicts`:
-   ```json
-   {"architect": "APPROVE", "security": "REQUEST_CHANGES: ...", "code_reviewer": "APPROVE"}
+1. Gather evidence:
    ```
-4. If ALL APPROVE: advance to Phase 5. Exit.
-5. If any REQUEST_CHANGES:
-   - Delegate fix to executor subagent with the rejection feedback
-   - Increment `validation_round`
-   - If `validation_round > max_validation_rounds` (default 3): set `phase: "blocked"`, exit
-   - Exit. (Next invocation re-runs all 3 reviews.)
+   evidence = omh_gather_evidence(commands=["npm run build", "npm test"])
+   ```
+2. Delegate 3 parallel reviews (exactly 3 = Hermes concurrent limit):
+   ```
+   delegate_task(tasks=[
+       {goal: "Architectural review", context: "{architect prompt}\n{spec + evidence}"},
+       {goal: "Security review", context: "{security-reviewer prompt}\n{files + evidence}"},
+       {goal: "Code quality review", context: "{code-reviewer prompt}\n{files + evidence}"}
+   ])
+   ```
+3. Record verdicts in `validation_verdicts`
+4. All APPROVE → advance to Phase 5, exit
+5. Any REQUEST_CHANGES → delegate fix to executor, increment `validation_round`, exit
+6. If `validation_round > max_validation_rounds` (default 3) → phase="blocked", exit
 
 ### Phase 5: Cleanup
 
-**Goal**: Clean up state files, produce completion summary.
-
-1. Set `phase: "complete"` (so if cleanup is interrupted, re-invocation retries)
+1. Set `phase: "complete"` (safety — if interrupted, re-invocation retries cleanup)
 2. Delete state files:
-   - `autopilot-state.json`
-   - `ralph-state.json`
-   - `ralph-tasks.json`
-   - `ralph-cancel.json` (if exists)
-3. Preserve:
-   - `.omh/logs/` (audit trail)
-   - `.omh/plans/` (consensus plans)
-   - `.omh/specs/` (confirmed specs)
-   - `.omh/progress/ralph-progress.md` (execution log)
-4. Report completion summary:
-   - Original goal
-   - Phases completed (with skips noted)
-   - Total ralph iterations
-   - QA cycles
-   - Validation rounds
-   - Key files changed
+   ```
+   omh_state(action="clear", mode="autopilot")
+   omh_state(action="clear", mode="ralph")
+   omh_state(action="clear", mode="ralph-tasks")
+   ```
+3. Preserve: `.omh/logs/`, `.omh/plans/`, `.omh/specs/`
+4. Report completion summary: goal, phases completed, ralph iterations, QA cycles, validation rounds
 
 ## State Management
 
-See `references/state-schema.md` for full schema.
-
-Key rules:
-- Atomic writes (write to `.tmp`, then rename)
-- Evidence truncation: build/test output capped at 2000 chars in state (keep the end). Full output in `.omh/logs/`.
-- Phase boundaries set `context_checkpoint: true`
-- Staleness warning at >2 hours since last update
+All state via `omh_state` tool. Atomic writes and staleness handled automatically.
 
 ## Sentinel Convention
 
-Other skills/callers detect autopilot status by checking:
-- `.omh/state/autopilot-state.json` exists → autopilot is in progress (check `phase` for details)
-- `phase: "complete"` → autopilot finished successfully
-- `phase: "blocked"` → autopilot needs intervention
-- No state file + `.omh/logs/` exists → autopilot ran and completed (state was cleaned up)
+```
+omh_state(action="check", mode="autopilot")
+→ {exists, active, phase, stale}
+```
 
 ## Pitfalls
 
-- **Don't try to loop ralph in a single session.** Context exhaustion will kill the pipeline before QA/Validation run. Each invocation does ONE step.
-- **Don't reimplement ralph.** Load the ralph skill and follow its procedure. Autopilot orchestrates, ralph executes.
-- **Phase boundaries require fresh sessions.** Respect `context_checkpoint`. Don't try to squeeze Phase 3 into the same session as the last ralph iteration.
-- **Don't skip QA.** Ralph verifies per-task. QA catches integration issues across tasks that per-task verification misses.
-- **Phase 0 is interactive if no spec exists.** For cron/automated runs, pre-create a confirmed spec with `omh-deep-interview`.
-- **Subagent limit: 3.** Phase 4 uses all 3 slots for parallel review. Don't try to add a 4th reviewer.
-- **Evidence truncation: always cap.** Build/test output in state at 2000 chars max. Full output goes to logs.
-- **Don't run multiple autopilot sessions.** One autopilot per project at a time. Check for existing state before creating new.
+- **Don't loop ralph in a single session.** Each ralph iteration is a separate invocation. Context exhaustion is real.
+- **Don't reimplement ralph.** Load the skill, follow its procedure.
+- **Phase boundaries = fresh sessions.** Respect `context_checkpoint`.
+- **Don't skip QA.** Ralph verifies per-task. QA catches integration issues.
+- **Phase 0 is interactive** if no spec exists. Pre-create specs for automated runs.
+- **3 subagent limit.** Phase 4 uses all 3 slots for parallel review.
