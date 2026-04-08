@@ -1,0 +1,40 @@
+{
+  "title": "OMH Plugin: Critique-and-fix loop until no P1/P2 issues",
+  "description": "Run parallel critique team (security, architecture, code quality) on the plugin codebase. Fix all P1 (Critical) and P2 (High) issues found. Repeat until a fresh critique pass raises zero P1 or P2 findings.",
+  "stories": [
+    {
+      "id": "US-001",
+      "title": "Run initial critique team and catalogue all findings",
+      "description": "Spawn parallel security, architect, and code-reviewer agents against the plugin codebase. Collect all findings, classify each by severity (P1=Critical, P2=High, P3=Medium, P4=Low), and write findings to .omc/critique-findings.json.",
+      "passes": true,
+      "acceptanceCriteria": [
+        ".omc/critique-findings.json exists and contains a structured list of findings with id, severity, file, description, and remediation fields",
+        "All three review perspectives (security, architecture, code-quality) are represented in the findings",
+        "Each finding has severity classified as P1, P2, P3, or P4"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Fix all P1 and P2 findings from the critique",
+      "description": "For each finding in .omc/critique-findings.json with severity P1 or P2, implement the remediation. Update the finding's 'fixed: true' field when done. All 82 tests must still pass after fixes.",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Every finding with severity P1 or P2 in critique-findings.json has fixed: true",
+        "python3 -m pytest plugin/tests/ -q exits with code 0 and shows 0 failures",
+        "No new P1 or P2 issues introduced by the fixes (verified by re-reading changed files)"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Re-run critique team and confirm no P1/P2 issues remain",
+      "description": "Run a fresh parallel critique pass (security + architect + code-reviewer) on the updated codebase. Confirm zero P1 or P2 findings. P3/P4 findings are acceptable.",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Fresh critique pass completes with all three reviewers",
+        "Zero P1 (Critical) findings reported by any reviewer",
+        "Zero P2 (High) findings reported by any reviewer",
+        "python3 -m pytest plugin/tests/ -q exits with code 0"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,229 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1775620733523,
+  "projectRoot": "/Users/adkaplan/Code/worktrees/oh-my-hermes/adkaplan/thoracic-paint",
+  "techStack": {
+    "languages": [],
+    "frameworks": [],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs"
+    ],
+    "gitBranches": {
+      "defaultBranch": "master",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 7,
+      "lastAccessed": 1775620733511,
+      "keyFiles": [
+        "architecture.md",
+        "lobehub-skills-reference.md",
+        "omc-plugin-infrastructure.md",
+        "omc-ralph-reference.md",
+        "omc-skill-activation.md"
+      ]
+    },
+    "skills": {
+      "path": "skills",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1775620733512,
+      "keyFiles": []
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "plugin/omh_state.py",
+      "accessCount": 50,
+      "lastAccessed": 1775661639622,
+      "type": "file"
+    },
+    {
+      "path": "plugin",
+      "accessCount": 47,
+      "lastAccessed": 1775661802890,
+      "type": "directory"
+    },
+    {
+      "path": "plugin/tools/evidence_tool.py",
+      "accessCount": 38,
+      "lastAccessed": 1775661893107,
+      "type": "file"
+    },
+    {
+      "path": "plugin/omh_config.py",
+      "accessCount": 32,
+      "lastAccessed": 1775661808295,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 31,
+      "lastAccessed": 1775661034011,
+      "type": "directory"
+    },
+    {
+      "path": "plugin/hooks/llm_hooks.py",
+      "accessCount": 27,
+      "lastAccessed": 1775661796840,
+      "type": "file"
+    },
+    {
+      "path": "plugin/config.yaml",
+      "accessCount": 25,
+      "lastAccessed": 1775661808242,
+      "type": "file"
+    },
+    {
+      "path": "plugin/tests/test_state.py",
+      "accessCount": 24,
+      "lastAccessed": 1775661630377,
+      "type": "file"
+    },
+    {
+      "path": "plugin/tests/test_evidence.py",
+      "accessCount": 22,
+      "lastAccessed": 1775661888525,
+      "type": "file"
+    },
+    {
+      "path": "plugin/hooks/session_hooks.py",
+      "accessCount": 20,
+      "lastAccessed": 1775661622913,
+      "type": "file"
+    },
+    {
+      "path": ".omh/plans/ralplan-plugin-consensus.md",
+      "accessCount": 16,
+      "lastAccessed": 1775623968496,
+      "type": "file"
+    },
+    {
+      "path": "plugin/tools/state_tool.py",
+      "accessCount": 16,
+      "lastAccessed": 1775661042080,
+      "type": "file"
+    },
+    {
+      "path": "plugin/__init__.py",
+      "accessCount": 12,
+      "lastAccessed": 1775661666895,
+      "type": "file"
+    },
+    {
+      "path": "plugin/tests/test_hooks.py",
+      "accessCount": 12,
+      "lastAccessed": 1775661666915,
+      "type": "file"
+    },
+    {
+      "path": "plugin/plugin.yaml",
+      "accessCount": 10,
+      "lastAccessed": 1775661029885,
+      "type": "file"
+    },
+    {
+      "path": "plugin/tools/__init__.py",
+      "accessCount": 8,
+      "lastAccessed": 1775661042245,
+      "type": "file"
+    },
+    {
+      "path": "plugin/hooks/__init__.py",
+      "accessCount": 8,
+      "lastAccessed": 1775661042285,
+      "type": "file"
+    },
+    {
+      "path": "plugin/tests/__init__.py",
+      "accessCount": 6,
+      "lastAccessed": 1775661042410,
+      "type": "file"
+    },
+    {
+      "path": "skills/omh-ralph/SKILL.md",
+      "accessCount": 5,
+      "lastAccessed": 1775658664339,
+      "type": "file"
+    },
+    {
+      "path": "skills/omh-ralph/references/state-schema.md",
+      "accessCount": 4,
+      "lastAccessed": 1775660007111,
+      "type": "file"
+    },
+    {
+      "path": "plugin/tests/test_config.py",
+      "accessCount": 4,
+      "lastAccessed": 1775661626072,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 2,
+      "lastAccessed": 1775621296201,
+      "type": "file"
+    },
+    {
+      "path": "plugin/tests",
+      "accessCount": 2,
+      "lastAccessed": 1775623988880,
+      "type": "directory"
+    },
+    {
+      "path": "docs/plugin-proposal.md",
+      "accessCount": 1,
+      "lastAccessed": 1775621250333,
+      "type": "file"
+    },
+    {
+      "path": "skills/omh-ralplan/SKILL.md",
+      "accessCount": 1,
+      "lastAccessed": 1775621263915,
+      "type": "file"
+    },
+    {
+      "path": "skills/omh-deep-interview/SKILL.md",
+      "accessCount": 1,
+      "lastAccessed": 1775621263977,
+      "type": "file"
+    },
+    {
+      "path": "skills/omh-autopilot/SKILL.md",
+      "accessCount": 1,
+      "lastAccessed": 1775621296256,
+      "type": "file"
+    },
+    {
+      "path": "skills/legacy/README.md",
+      "accessCount": 1,
+      "lastAccessed": 1775623480740,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

@@ -1,0 +1,87 @@
+"""
+omh_state tool — unified state management for OMH workflow modes.
+
+Actions: read | write | clear | check | list | cancel | cancel_check
+"""
+
+import json
+
+from plugin.omh_state import (
+    state_cancel,
+    state_check,
+    state_check_cancel,
+    state_clear,
+    state_list_active,
+    state_read,
+    state_write,
+)
+
+OMH_STATE_SCHEMA = {
+    "name": "omh_state",
+    "description": (
+        "Manage OMH workflow state. Actions: "
+        "read (get current state), "
+        "write (save state data), "
+        "clear (delete state file), "
+        "check (quick status: exists/active/stale/phase), "
+        "list (all active OMH modes), "
+        "cancel (request cancellation of a mode), "
+        "cancel_check (check if cancellation was requested). "
+        "State is stored in .omh/state/ relative to the project root."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "action": {
+                "type": "string",
+                "enum": ["read", "write", "clear", "check", "list", "cancel", "cancel_check"],
+                "description": "Operation to perform",
+            },
+            "mode": {
+                "type": "string",
+                "description": (
+                    "Mode name: ralph, autopilot, ralplan, deep-interview, etc. "
+                    "Required for all actions except 'list'."
+                ),
+            },
+            "data": {
+                "type": "object",
+                "description": "State data to write (for action=write only)",
+            },
+            "reason": {
+                "type": "string",
+                "description": "Cancel reason (for action=cancel only)",
+            },
+        },
+        "required": ["action"],
+    },
+}
+
+
+def omh_state_handler(args: dict, **kwargs) -> str:
+    action = args.get("action")
+    mode = args.get("mode", "")
+
+    if action == "list":
+        return json.dumps(state_list_active())
+
+    if not mode:
+        return json.dumps({"error": "mode is required for this action"})
+
+    dispatch = {
+        "read":         lambda: state_read(mode),
+        "write":        lambda: state_write(mode, args.get("data") or {}),
+        "clear":        lambda: state_clear(mode),
+        "check":        lambda: state_check(mode),
+        "cancel":       lambda: state_cancel(mode, args.get("reason", "user request")),
+        "cancel_check": lambda: state_check_cancel(mode),
+    }
+
+    fn = dispatch.get(action)
+    if not fn:
+        return json.dumps({"error": f"Unknown action: {action}"})
+
+    try:
+        return json.dumps(fn())
+    except Exception as e:
+        return json.dumps({"error": f"omh_state({action}, {mode}) failed: {e}"})

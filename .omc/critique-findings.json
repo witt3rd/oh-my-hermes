@@ -1,0 +1,99 @@
+{
+  "generated_at": "2026-04-08",
+  "reviewers": ["security-reviewer", "architect", "code-reviewer"],
+  "findings": [
+    {
+      "id": "SEC-001",
+      "aliases": ["CODE-001", "ARCH-001"],
+      "severity": "P1",
+      "file": "plugin/tools/evidence_tool.py",
+      "line": 121,
+      "description": "subprocess.run called with shell=True. The allowlist check uses startswith() on the raw command string, so any command that passes the allowlist prefix can append arbitrary arguments or even secondary commands. E.g., 'npm test --exec=malicious' passes startswith('npm test') but runs attacker-controlled code. With shell=True the OS shell interprets the full string after passing the allowlist gate.",
+      "remediation": "Switch to shell=False + shlex.split(). Validate the command using token-level comparison against allowlist prefixes (not string prefix matching) so 'npm test' only matches commands whose first tokens are exactly ['npm', 'test'].",
+      "fixed": true
+    },
+    {
+      "id": "SEC-002",
+      "severity": "P2",
+      "file": "plugin/tools/evidence_tool.py",
+      "line": 108,
+      "description": "Allowlist startswith() check allows partial-word bypass. 'npm testing-malicious-package' passes startswith('npm test') even though 'testing-malicious-package' is not 'test'. Similarly 'cargo testing' passes 'cargo test'.",
+      "remediation": "Token-based allowlist matching (fix also covered by SEC-001 remediation): split both allowlist entry and command on whitespace, require all prefix tokens to match exactly.",
+      "fixed": true
+    },
+    {
+      "id": "CODE-004",
+      "severity": "P2",
+      "file": "plugin/omh_state.py",
+      "line": 132,
+      "description": "Double serialization in state_write. json.dumps is called to measure byte size, then _atomic_write calls json.dump again on the same dict. Two serializations of the same data is wasteful and inconsistent if floating-point repr changes.",
+      "remediation": "Serialize once with json.dumps, pass the resulting string to _atomic_write, change _atomic_write to accept a str and call f.write(content).",
+      "fixed": true
+    },
+    {
+      "id": "ARCH-004",
+      "severity": "P2",
+      "file": "plugin/omh_state.py",
+      "line": 204,
+      "description": "state_cancel on a non-existent mode creates phantom state with active: True. This ghost entry will appear in state_list_active() and confuse the pre_llm_call hook into injecting stale OMH context for a workflow that never started.",
+      "remediation": "Change the else branch to data = {} (no active field). The cancel signal (cancel_requested, cancel_reason, cancel_at) is still written and detectable via state_check_cancel. The mode will not appear as active in state_list_active.",
+      "fixed": true
+    },
+    {
+      "id": "CODE-003",
+      "aliases": ["ARCH-002"],
+      "severity": "P2",
+      "file": "plugin/omh_state.py",
+      "line": 30,
+      "description": "_list_cache is a plain dict mutated from multiple call sites with no locking. Not safe if Hermes ever calls plugin handlers from multiple threads concurrently.",
+      "remediation": "Document the single-threaded assumption with a comment (Hermes plugin handlers run in a single thread). Add a threading.Lock if thread-safety is ever required.",
+      "fixed": true
+    },
+    {
+      "id": "ARCH-003",
+      "severity": "P2",
+      "file": "plugin/hooks/session_hooks.py",
+      "line": 19,
+      "description": "TOCTOU: on_session_end calls state_list_active() which may return cached data up to 5 seconds old. A mode cleared just before session end could still appear in the list. The per-mode re-check (result.get('exists')) partially mitigates this, but a freshly-started mode could be missed if it started after the cached snapshot.",
+      "remediation": "Invalidate the list cache before calling state_list_active() in on_session_end to force a fresh disk scan at session boundary. Document as known limitation for new-mode race.",
+      "fixed": true
+    },
+    {
+      "id": "CODE-005",
+      "severity": "P3",
+      "file": "plugin/omh_state.py",
+      "line": 185,
+      "description": "p.stem.replace('-state', '') incorrectly strips any occurrence of '-state' substring. A mode named 'state-state' would become 'state' instead of 'state-state'. Should use removesuffix('-state') to only strip the suffix.",
+      "remediation": "Change to p.stem.removesuffix('-state') — available since Python 3.9, already required by plugin.",
+      "fixed": true
+    },
+    {
+      "id": "ARCH-007",
+      "severity": "P3",
+      "file": "plugin/omh_config.py",
+      "line": 78,
+      "description": "_deep_merge uses dict(base) which is a shallow copy. Nested dicts in the merged result share references with _DEFAULTS, so a caller mutating the returned config could corrupt the defaults dict.",
+      "remediation": "Use copy.deepcopy(base) or recursively copy nested dicts. Low risk in current usage since config is read-only after first load, but the invariant is fragile.",
+      "fixed": false
+    },
+    {
+      "id": "ARCH-009",
+      "severity": "P3",
+      "file": "plugin/omh_state.py",
+      "line": 125,
+      "description": "_STATE_WARN_SIZE = 100_000 (100KB) is a reasonable guard, but the threshold is not configurable via config.yaml. Operators with small state footprints cannot lower it.",
+      "remediation": "Read threshold from config (evidence.state_warn_bytes or similar) with 100KB default. Low priority.",
+      "fixed": false
+    }
+  ],
+  "summary": {
+    "P1": 1,
+    "P2": 5,
+    "P3": 3,
+    "P4": 0,
+    "fixed_P1": 1,
+    "fixed_P2": 5,
+    "fixed_P3": 1,
+    "unfixed_P3": 2
+  }
+}
