@@ -73,7 +73,6 @@ def test_get_config_loads_yaml_override(tmp_path, monkeypatch):
     monkeypatch.setattr(omh_config_module, "_find_config_file", lambda: cfg_file)
     config = get_config()
     assert config["staleness_hours"] == 99
-    assert "roles" in config  # defaults preserved
 
 
 def test_get_config_yaml_nested_override_merges(tmp_path, monkeypatch):
@@ -82,15 +81,14 @@ def test_get_config_yaml_nested_override_merges(tmp_path, monkeypatch):
     monkeypatch.setattr(omh_config_module, "_find_config_file", lambda: cfg_file)
     config = get_config()
     assert config["evidence"]["max_commands"] == 3
-    assert config["evidence"]["default_timeout"] == 120  # default preserved
 
 
-def test_get_config_parse_error_falls_back_to_defaults(tmp_path, monkeypatch):
+def test_get_config_parse_error_returns_empty(tmp_path, monkeypatch):
     cfg_file = tmp_path / "config.yaml"
     cfg_file.write_text(": invalid: yaml: {{\n")
     monkeypatch.setattr(omh_config_module, "_find_config_file", lambda: cfg_file)
     config = get_config()
-    assert config["staleness_hours"] == 2  # default preserved
+    assert config == {}
 
 
 def test_get_config_returns_same_object_on_second_call():
@@ -99,14 +97,13 @@ def test_get_config_returns_same_object_on_second_call():
     assert first is second
 
 
-def test_get_config_no_config_file_returns_defaults(monkeypatch):
+def test_get_config_no_config_file_returns_empty(monkeypatch):
     monkeypatch.setattr(omh_config_module, "_find_config_file", lambda: None)
     config = get_config()
-    assert config["staleness_hours"] == 2
-    assert "evidence" in config
+    assert config == {}
 
 
-def test_get_config_yaml_import_error_falls_back_to_defaults(tmp_path, monkeypatch):
+def test_get_config_yaml_import_error_returns_empty(tmp_path, monkeypatch):
     import builtins
     cfg_file = tmp_path / "config.yaml"
     cfg_file.write_text("staleness_hours: 99\n")
@@ -118,7 +115,7 @@ def test_get_config_yaml_import_error_falls_back_to_defaults(tmp_path, monkeypat
         return real_import(name, *args, **kwargs)
     monkeypatch.setattr(builtins, "__import__", block_yaml)
     config = get_config()
-    assert config["staleness_hours"] == 2  # default, not 99
+    assert config == {}
 
 
 def test_reload_config_clears_cache(tmp_path, monkeypatch):
