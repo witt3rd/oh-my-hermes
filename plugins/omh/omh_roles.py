@@ -8,6 +8,7 @@ Provides:
   get_role_catalog()         — {name: Path} map of all available roles
 """
 
+import os
 import re
 from pathlib import Path
 
@@ -19,6 +20,23 @@ ROLE_NAME_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
 ROLE_MARKER_RE = re.compile(r"\[omh-role:([a-zA-Z0-9_-]+)\]")
 
 _REFERENCES_DIR = Path(__file__).parent / "references"
+
+
+def is_debug() -> bool:
+    """Return True if OMH debug output is enabled via env var or config."""
+    if os.environ.get("OMH_DEBUG", "").strip() in ("1", "true", "yes"):
+        return True
+    try:
+        from .omh_config import get_config
+        return bool(get_config().get("debug", False))
+    except Exception:
+        return False
+
+
+def debug_print(msg: str) -> None:
+    """Print a debug message if debug mode is enabled."""
+    if is_debug():
+        print(f"[OMH DEBUG] {msg}", flush=True)
 
 
 def get_role_catalog() -> dict[str, Path]:

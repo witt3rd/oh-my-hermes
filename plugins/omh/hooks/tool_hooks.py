@@ -31,14 +31,16 @@ def pre_tool_call(**kwargs) -> dict | None:
     if not goal:
         return None
 
-    from ..omh_roles import extract_role_marker, get_role_catalog
+    from ..omh_roles import debug_print, extract_role_marker, get_role_catalog
     role_name = extract_role_marker(goal)
     if role_name is None:
         return None
 
+    debug_print(f"pre_tool_call: delegate_task with role '{role_name}' detected")
     catalog = get_role_catalog()
     if role_name not in catalog:
         available = ", ".join(sorted(catalog.keys())) or "(none)"
+        debug_print(f"pre_tool_call: unknown role '{role_name}' in delegate_task — blocking. Available: {available}")
         logger.warning(
             "omh pre_tool_call: unknown role '%s' in delegate_task goal. "
             "Available: %s",

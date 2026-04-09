@@ -10,7 +10,7 @@ Returns None when neither role markers nor active modes are present (zero overhe
 
 import logging
 
-from ..omh_roles import extract_role_marker, load_role_prompt
+from ..omh_roles import debug_print, extract_role_marker, load_role_prompt
 from ..omh_state import state_list_active
 
 logger = logging.getLogger(__name__)
@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 def pre_llm_call(**kwargs) -> dict | None:
     """Inject role prompt and/or OMH mode context before each LLM call."""
     is_first_turn = kwargs.get("is_first_turn", False)
+    if is_first_turn:
+        preview = (kwargs.get("user_message") or "")[:80].replace("\n", "\\n")
+        debug_print(f"pre_llm_call: first_turn user_message preview: {preview!r}")
     if not is_first_turn and "is_first_turn" not in kwargs:
         logger.debug(
             "pre_llm_call: 'is_first_turn' kwarg not provided by Hermes runtime; "
@@ -34,6 +37,7 @@ def pre_llm_call(**kwargs) -> dict | None:
         if role_name is not None:
             role_prompt = load_role_prompt(role_name)
             if role_prompt is not None:
+                debug_print(f"pre_llm_call: injecting role '{role_name}' into subagent system prompt")
                 context_parts.append(f"[OMH Role: {role_name}]\n{role_prompt}")
             else:
                 from ..omh_roles import get_role_catalog
@@ -42,6 +46,7 @@ def pre_llm_call(**kwargs) -> dict | None:
                     "pre_llm_call: unknown role '%s' requested via marker. Available: %s",
                     role_name, available,
                 )
+                debug_print(f"pre_llm_call: unknown role '{role_name}' — no injection. Available: {available}")
                 context_parts.append(
                     f"[OMH WARNING] Unknown role '{role_name}' requested. "
                     f"Available roles: {available}. No role prompt was injected."
