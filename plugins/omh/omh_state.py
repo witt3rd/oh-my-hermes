@@ -95,7 +95,7 @@ def state_read(mode: str) -> dict:
     Returns {exists, data, stale, age_seconds}. Data stripped of _meta."""
     path = _state_path(mode)
     if not path.exists():
-        return {"exists": False, "data": {}, "stale": False, "age_seconds": 0}
+        return {"exists": False, "data": {}, "stale": False, "age_seconds": None}
 
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
@@ -243,6 +243,7 @@ def state_check_cancel(mode: str) -> dict:
         data.pop("cancel_requested", None)
         data.pop("cancel_reason", None)
         data.pop("cancel_at", None)
+        data.pop("cancel_requested_by", None)
         state_write(mode, data)
         return {"cancelled": False, "reason": None, "requested_at": None}
 

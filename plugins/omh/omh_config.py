@@ -4,6 +4,7 @@ OMH Config Loader — reads plugin/config.yaml (or installed copy), merges with 
 Config is cached after first load. Call get_config() from any module.
 """
 
+import copy
 import logging
 from pathlib import Path
 from typing import Any
@@ -94,7 +95,7 @@ def get_config() -> dict[str, Any]:
     if _config_cache is not None:
         return _config_cache
 
-    config = dict(_DEFAULTS)
+    config = copy.deepcopy(_DEFAULTS)
     path = _find_config_file()
     if path:
         try:

@@ -228,6 +228,15 @@ The `docs/` directory contains analysis of the source implementations:
 - **Skills only**: No additional dependencies — copy skill directories to `~/.hermes/skills/omh/`
 - **With plugin**: Python 3.11+; `pyyaml` optional (falls back to built-in defaults); install `plugins/omh/` to `~/.hermes/plugins/omh/`
 
+### Development
+
+To run the plugin test suite:
+
+```bash
+pip install -e ".[dev]"
+python -m pytest plugins/omh/tests/
+```
+
 ## Hermes Constraints
 
 | Constraint | Impact | How OMH Handles It |

@@ -1,8 +1,10 @@
 """Tests for omh_state.py — state engine and omh_state_handler dispatch."""
 
 import json
+import logging
 import time
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -62,6 +64,7 @@ def test_read_missing_file():
     result = state_read("nonexistent")
     assert result["exists"] is False
     assert result["data"] == {}
+    assert result["age_seconds"] is None
 
 
 def test_write_rejects_non_dict():
@@ -177,10 +180,16 @@ def test_cancel_check_no_signal():
 def test_cancel_check_expired(monkeypatch):
     omh_config_module._config_cache["cancel_ttl_seconds"] = 0  # TTL = 0s → always expired
     state_write("ralph", {"active": True})
-    state_cancel("ralph")
+    state_cancel("ralph", requested_by="test-agent")
     time.sleep(0.01)
     result = state_check_cancel("ralph")
     assert result["cancelled"] is False
+    # All cancel fields including cancel_requested_by must be cleared from state
+    data = state_read("ralph")["data"]
+    assert "cancel_requested" not in data
+    assert "cancel_reason" not in data
+    assert "cancel_at" not in data
+    assert "cancel_requested_by" not in data
 
 
 def test_cancel_without_existing_state():
@@ -405,3 +414,85 @@ def test_write_strips_user_meta_key():
     assert raw["_meta"]["written_at"] != "2099-01-01T00:00:00+00:00"
     # And user data should not contain _meta
     assert "_meta" not in result["data"]
+
+
+# ---------------------------------------------------------------------------
+# New coverage tests
+# ---------------------------------------------------------------------------
+
+def test_schema_version_mismatch_warns(caplog):
+    path = Path(".omh/state/ralph-state.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"_meta": {"schema_version": 999, "written_at": "2099-01-01T00:00:00+00:00",
+                               "mode": "ralph", "written_by": "omh-plugin"},
+                    "active": True}),
+        encoding="utf-8",
+    )
+    with caplog.at_level(logging.WARNING, logger="plugins.omh.omh_state"):
+        result = state_read("ralph")
+    assert result["exists"] is True
+    assert any("schema_version" in record.message for record in caplog.records)
+
+
+def test_large_state_warns(caplog):
+    large_value = "x" * 200_000
+    with caplog.at_level(logging.WARNING, logger="plugins.omh.omh_state"):
+        result = state_write("ralph", {"active": True, "big": large_value})
+    assert result["success"] is True
+    assert any("large" in record.message for record in caplog.records)
+
+
+def test_clear_unlink_error(monkeypatch):
+    state_write("ralph", {"active": True})
+
+    original_unlink = Path.unlink
+
+    def fail_unlink(self, missing_ok=False):
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(Path, "unlink", fail_unlink)
+    result = state_clear("ralph")
+    monkeypatch.setattr(Path, "unlink", original_unlink)
+
+    assert result["cleared"] is False
+    assert "error" in result
+
+
+def test_check_propagates_parse_error():
+    path = Path(".omh/state/ralph-state.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("{not valid json", encoding="utf-8")
+    result = state_check("ralph")
+    assert "error" in result
+
+
+def test_list_active_handles_glob_error(monkeypatch):
+    import plugins.omh.omh_state as mod
+
+    mock_dir = MagicMock()
+    mock_dir.glob.side_effect = OSError("disk error")
+    monkeypatch.setattr(mod, "_state_dir", lambda: mock_dir)
+    mod._list_cache["result"] = None
+    mod._list_cache["expires_at"] = 0.0
+
+    result = state_list_active()
+    assert result["modes"] == []
+
+
+def test_check_cancel_on_nonexistent_file():
+    result = state_check_cancel("nonexistent_mode")
+    assert result["cancelled"] is False
+    assert result["reason"] is None
+
+
+def test_check_cancel_bad_timestamp():
+    state_write("ralph", {
+        "active": True,
+        "cancel_requested": True,
+        "cancel_at": "not-a-timestamp",
+        "cancel_reason": "test",
+    })
+    result = state_check_cancel("ralph")
+    # Bad timestamp means expiry check is skipped (except block passes) → signal treated as active
+    assert result["cancelled"] is True

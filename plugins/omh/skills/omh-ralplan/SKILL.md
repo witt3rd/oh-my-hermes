@@ -9,7 +9,7 @@ tags: [planning, multi-agent, consensus, architecture]
 category: omh
 metadata:
   hermes:
-    requires_toolsets: [terminal]
+    requires_toolsets: [terminal, omh]
 ---
 
 # OMH Ralplan — Consensus Planning

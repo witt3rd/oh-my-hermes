@@ -5,7 +5,8 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch
 
-from ..omh_roles import extract_role_marker, get_role_catalog, load_role_prompt
+import plugins.omh.omh_config as omh_config_module
+from ..omh_roles import extract_role_marker, get_role_catalog, load_role_prompt, is_debug, debug_print
 
 
 # ---------------------------------------------------------------------------
@@ -152,3 +153,48 @@ def test_handler_load_role_path_traversal(monkeypatch, tmp_path):
     from ..tools.state_tool import omh_state_handler
     result = json.loads(omh_state_handler({"action": "load_role", "role": "../../etc/passwd"}))
     assert "error" in result
+
+
+# ---------------------------------------------------------------------------
+# is_debug() via environment variable (lines 27-28)
+# ---------------------------------------------------------------------------
+
+def test_is_debug_env_var_true(monkeypatch):
+    monkeypatch.setenv("OMH_DEBUG", "1")
+    assert is_debug() is True
+
+
+def test_is_debug_env_var_true_word(monkeypatch):
+    monkeypatch.setenv("OMH_DEBUG", "true")
+    assert is_debug() is True
+
+
+# ---------------------------------------------------------------------------
+# is_debug() reads from config (lines 32-33)
+# ---------------------------------------------------------------------------
+
+def test_is_debug_from_config(monkeypatch):
+    monkeypatch.delenv("OMH_DEBUG", raising=False)
+    monkeypatch.setattr(omh_config_module, "_config_cache", {"debug": True})
+    assert is_debug() is True
+
+
+# ---------------------------------------------------------------------------
+# debug_print outputs when enabled (lines 38-39)
+# ---------------------------------------------------------------------------
+
+def test_debug_print_outputs_when_enabled(monkeypatch, capsys):
+    monkeypatch.setenv("OMH_DEBUG", "1")
+    debug_print("hello test")
+    captured = capsys.readouterr()
+    assert "[OMH DEBUG]" in captured.out
+    assert "hello test" in captured.out
+
+
+# ---------------------------------------------------------------------------
+# get_role_catalog() when references dir doesn't exist (line 47)
+# ---------------------------------------------------------------------------
+
+def test_get_role_catalog_missing_dir(monkeypatch):
+    monkeypatch.setattr("plugins.omh.omh_roles._REFERENCES_DIR", Path("/nonexistent/path/xyz123"))
+    assert get_role_catalog() == {}

@@ -230,3 +230,41 @@ def test_file_not_found_error():
     assert r["passed"] is False
     assert "Command not found" in r["output"]
     assert "nonexistent-cmd" in r["output"]
+
+
+# ---------------------------------------------------------------------------
+# Empty prefix in allowlist is skipped (line 38)
+# ---------------------------------------------------------------------------
+
+def test_empty_prefix_in_allowlist_is_skipped(monkeypatch):
+    omh_config_module._config_cache["evidence"]["allowlist_prefixes"] = ["", "python3 -m pytest"]
+    result = json.loads(omh_evidence_handler({"commands": ["python3 -m pytest ."]}))
+    # The empty prefix must not cause a match by itself; the real prefix should match
+    assert "error" not in result
+    assert len(result["results"]) == 1
+    assert result["results"][0]["passed"] is not None  # command was allowed (not rejected by allowlist)
+    assert "not in allowlist" not in result["results"][0].get("output", "")
+
+
+# ---------------------------------------------------------------------------
+# shlex.split parse failure (lines 129-130)
+# ---------------------------------------------------------------------------
+
+def test_command_parse_error_returns_error():
+    result = json.loads(omh_evidence_handler({"commands": ["python3 -m pytest 'unclosed"]}))
+    assert "error" in result
+    assert "rejected" in result
+    assert "python3 -m pytest 'unclosed" in result["rejected"]
+
+
+# ---------------------------------------------------------------------------
+# Generic exception during subprocess execution (lines 187-188)
+# ---------------------------------------------------------------------------
+
+def test_command_generic_exception(monkeypatch):
+    omh_config_module._config_cache["evidence"]["allowlist_prefixes"].append("python3 -m pytest")
+    monkeypatch.setattr("plugins.omh.tools.evidence_tool.subprocess.run", lambda *a, **kw: (_ for _ in ()).throw(RuntimeError("unexpected")))
+    result = json.loads(omh_evidence_handler({"commands": ["python3 -m pytest ."]}))
+    r = result["results"][0]
+    assert r["exit_code"] == -1
+    assert "ERROR" in r["output"]
