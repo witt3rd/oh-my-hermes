@@ -91,15 +91,18 @@ def omh_evidence_handler(args: dict, **kwargs) -> str:
     timeout = min(timeout, _MAX_TIMEOUT)
     truncate = min(truncate, _MAX_TRUNCATE)
 
+    # Determine project root: config key "project_root" if set, else cwd().
+    project_root_cfg = config.get("project_root")
+    project_root = Path(project_root_cfg).resolve() if project_root_cfg else Path.cwd().resolve()
+
     # Validate workdir stays within the project root (prevents escaping cwd via tool args)
     workdir_arg = args.get("workdir") or None
     workdir = None
     if workdir_arg:
         resolved = Path(workdir_arg).resolve()
-        project_root = Path.cwd().resolve()
         if not resolved.is_relative_to(project_root):
             return json.dumps({
-                "error": f"workdir must be within project root",
+                "error": "workdir must be within project root",
                 "workdir": workdir_arg,
             })
         workdir = str(resolved)

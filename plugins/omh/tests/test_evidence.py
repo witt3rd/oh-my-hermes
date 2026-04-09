@@ -268,3 +268,28 @@ def test_command_generic_exception(monkeypatch):
     r = result["results"][0]
     assert r["exit_code"] == -1
     assert "ERROR" in r["output"]
+
+
+# ---------------------------------------------------------------------------
+# project_root config key (#16)
+# ---------------------------------------------------------------------------
+
+def test_project_root_config_allows_subdir(tmp_path):
+    root = tmp_path / "project"
+    root.mkdir()
+    subdir = root / "src"
+    subdir.mkdir()
+    omh_config_module._config_cache["project_root"] = str(root)
+    result = json.loads(omh_evidence_handler({"commands": ["echo hi"], "workdir": str(subdir)}))
+    assert result["all_pass"] is True
+
+
+def test_project_root_config_rejects_outside(tmp_path):
+    root = tmp_path / "project"
+    root.mkdir()
+    outside = tmp_path / "other"
+    outside.mkdir()
+    omh_config_module._config_cache["project_root"] = str(root)
+    result = json.loads(omh_evidence_handler({"commands": ["echo hi"], "workdir": str(outside)}))
+    assert "error" in result
+    assert "workdir" in result["error"]

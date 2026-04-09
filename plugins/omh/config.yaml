@@ -1,3 +1,5 @@
+# project_root: /absolute/path/to/project  # optional; defaults to cwd() at runtime
+
 roles:
   executor:          {category: implementation}
   verifier:          {category: review}

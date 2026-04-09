@@ -90,6 +90,12 @@ Write initial state:
 omh_state(action="write", mode="ralph", data={
   "active": true, "phase": "execute", "iteration": 0,
   "session_id": "<uuid>", "max_iterations": 100,
+  "task_prompt": "<original user request>",
+  "current_task_id": null,
+  "started_at": "<ISO 8601 timestamp>",
+  "project_path": "<absolute path to project root>",
+  "files_modified": [],
+  "error_history": [],
   "completed_task_learnings": []
 })
 ```
