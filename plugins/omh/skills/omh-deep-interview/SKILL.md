@@ -22,6 +22,7 @@ metadata:
 - The user says: "deep interview", "requirements", "what should we build", "help me think through this"
 - omh-ralplan determines the goal is too ambiguous to plan
 - You're unsure what the user actually wants
+- **Domain unfamiliarity:** if the goal requires external knowledge of an unfamiliar domain, suggest running `omh-deep-research` first to gather context, then resume the interview with the confirmed report as input.
 
 ## When NOT to Use
 
@@ -53,6 +54,12 @@ Before starting a new interview:
 3. If resuming: `omh_state(action="read", mode="interview")` — read round summaries to reconstruct context
 4. If abandoning: `omh_state(action="write", mode="interview", data={...status: "abandoned"})`, proceed to Phase 1
 5. If no active state found: proceed to Phase 1
+6. **Check for existing research context (omh-deep-research sentinel):**
+   if any `.omh/research/*-report.md` exists with frontmatter
+   `status: confirmed`, mention it to the user as available context for
+   the interview (e.g., "I see a confirmed research report on '{topic}'
+   at `{path}` — want me to fold that in as background?"). Do NOT
+   auto-load it; the user decides.
 
 ### Phase 1: Opening
 

@@ -154,11 +154,166 @@ Before starting any new research session:
 6. Log `STARTED slug={slug}` and `PLAN_WRITTEN slug={slug} subtopics=N`.
 7. Exit. Re-invocation will pick up at Phase 2 via the Phase 0 resume path.
 
-### Phase 2-5
+### Phase 2: Search (parallel batched, re-entrant)
 
-Implemented in subsequent tasks (T5-T9). Phase boundaries are
-exit-safe; resumption is by re-invoking the skill — Phase 0 routes to
-the correct phase via `state.phase`.
+This phase is **re-entrant**: it dispatches one batch of up to 3
+researcher subagents per invocation, then exits. Re-invoke to dispatch
+the next batch. Re-entry is driven by `state.completed_subtopics`.
+
+1. Cancel check: `omh_state(action="cancel_check", mode="research")`.
+2. Read state and the `{slug}-plan.md` frontmatter.
+3. Compute `pending = [s for s in plan.subtopics if s.name not in state.completed_subtopics]`.
+4. Take the next `batch = pending[:3]` (up to 3 in parallel).
+5. **Dispatch ONE batch call** with the `[omh-role:researcher]` marker:
+   ```
+   delegate_task(tasks=[
+     {
+       "goal": "<self-contained: topic, subtopic name, exact queries to run, output template per [omh-role:researcher]>",
+       "context": "<plan excerpt for this subtopic; no other subagent's findings>",
+     },
+     ...up to 3...
+   ])
+   ```
+   Each task's `goal` is fully self-contained — no inter-subagent
+   dependencies. The role marker `[omh-role:researcher]` MUST appear in
+   each goal so the subagent loads the role.
+6. **(Strict write-order — NEVER reverse this order):**
+   1. Write all findings file(s) for this batch atomically
+      (tmp → fsync → rename). Each file lands at
+      `.omh/research/{slug}-findings/{subtopic-slug}.md` with
+      frontmatter capturing `subtopic`, `source_urls`, and credibility
+      tags pulled from the subagent's returned SOURCES block.
+   2. Update `state.completed_subtopics` (extend the list, persist via
+      `omh_state(action="write", mode="research", data=...)`).
+   3. Exit.
+7. **Phase transition.** On the next invocation, Phase 0 routes back
+   here. If `pending` becomes empty after the write, set
+   `state.phase = "gap_check"` BEFORE exiting (still after the
+   findings write — order: findings → completed_subtopics → phase flip).
+8. Log `BATCH_COMPLETE batch=N subtopics=[name1,name2,...]` per batch.
+
+**Pitfalls specific to Phase 2:**
+
+- **Dedup across subtopics.** Two researchers may surface the same URL.
+  The synthesist (Phase 4) handles cross-subtopic dedup via global
+  Sources renumbering; Phase 2 does NOT need to dedup across files.
+- **Slug for findings filename.** Use `kebab(subtopic.name)[:60]`. If
+  two subtopics kebab to the same slug, append `-2`, `-3`, etc.
+- **Parent never calls `web_search` or `web_extract` directly.** All
+  web tool use is inside the delegated `[omh-role:researcher]`
+  subagents. The parent's job is dispatch and disk.
+
+### Phase 3: Gap Check (TWO branches only)
+
+The parent skill never calls `web_search` or `web_extract` directly;
+all web tool use happens inside delegated subagents.
+
+1. Cancel check: `omh_state(action="cancel_check", mode="research")`.
+2. Read all `.omh/research/{slug}-findings/*.md` files. From each, extract
+   the `GAPS:` bullet list. Concatenate, then **dedup lexically**
+   (case-insensitive trim-compare; preserve first occurrence).
+3. **TWO branches only:**
+
+   - **(a) 0 gaps** — Set `state.phase = "synthesize"`, log
+     `GAP_CHECK_COMPLETE gaps=0`, exit.
+
+   - **(b) ≥1 gap** — Delegate ONE `[omh-role:researcher]` subagent.
+     Goal: synthetic "subtopic" named `_followup`, with the deduped gap
+     list as the queries. Parent writes the returned text to
+     `.omh/research/{slug}-findings/_followup.md` (atomic). Set
+     `state.phase = "synthesize"`, log `GAP_CHECK_COMPLETE gaps=N`, exit.
+
+   No threshold tiers. No N-versus-M gap branching. No inline
+   web_search branch. Two branches only — that is the contract.
+
+### Phase 4: Synthesize (parent inlines findings; parent writes report)
+
+1. Cancel check: `omh_state(action="cancel_check", mode="research")`.
+2. **Parent INLINES findings.** Read ALL files under
+   `.omh/research/{slug}-findings/` (including `_followup.md` if
+   present). Concatenate their full contents into the delegation's
+   `context` field. The synthesist subagent has no filesystem access.
+3. Dispatch ONE `[omh-role:research-synthesist]` task:
+   ```
+   delegate_task(
+     goal="<self-contained: produce report per [omh-role:research-synthesist] template; topic={topic}; reference inlined plan + findings>",
+     context="<plan frontmatter + every findings file content, fully inlined>",
+   )
+   ```
+4. **Retry context.** If `state.synthesis_attempts > 0`, append the
+   prior verifier's REQUEST_CHANGES feedback (stored in
+   `state.last_verifier_feedback`) to the goal as:
+   ```
+   Address these prior verifier findings:
+   {feedback}
+   ```
+5. **Parent always overwrites** `.omh/research/{slug}-report.md` with
+   the returned text. Frontmatter starts at `status: draft`. NO `-v2`
+   suffixing. Prior verdicts live only in state, not on disk.
+6. **C3 propagation.** Parent does NOT edit the returned report. Any
+   `(insufficient sources for this subtopic)` strings remain verbatim.
+7. Set `state.phase = "verify"`, log `REPORT_DRAFT`, exit.
+
+### Phase 5: Verify (parent inlines; 3-strike gate; ordered confirm)
+
+1. Cancel check: `omh_state(action="cancel_check", mode="research")`.
+2. **Parent INLINES report + findings.** Read `{slug}-report.md` AND
+   all `{slug}-findings/*.md` files. Concatenate BOTH into the
+   verifier delegation's `context` field. Verifier subagent has no
+   filesystem access.
+3. **Tools allowlist (A5).** When dispatching, pass a tools allowlist
+   EXCLUDING write/edit/filesystem tools where Hermes supports
+   per-call tool scoping. If Hermes lacks per-call scoping, document
+   in Known Gaps and rely on the prose READ-ONLY contract in
+   `role-research-verifier.md`.
+4. Dispatch ONE `[omh-role:research-verifier]` task. Parse the
+   returned VERDICT.
+
+5. **On VERDICT: PASS — STRICT ORDER (NEVER reverse):**
+   1. Write `{slug}-report.md` with frontmatter `status: confirmed` (atomic; idempotent sentinel; THIS is the source-of-truth and must land FIRST).
+   2. Append `REPORT_CONFIRMED slug={slug}` to the event log.
+   3. Clear state via `omh_state(action="clear", mode="research")`.
+   4. Print summary to user; exit.
+
+   Phase 0 self-heals if a crash occurs between step 1 and step 3 (it
+   detects the confirmed sentinel and clears the orphan state).
+
+6. **On VERDICT: FAIL with `state.synthesis_attempts < 3`:**
+   - Increment `state.synthesis_attempts`.
+   - Store the verifier's REQUEST_CHANGES verdict (full body) in
+     `state.last_verifier_feedback`.
+   - Set `state.phase = "synthesize"`.
+   - Log `VERIFY_FAIL slug={slug}` and `SYNTHESIS_RETRY attempt={N}`.
+   - Exit. Re-invocation re-runs Phase 4 with feedback context.
+
+7. **On VERDICT: FAIL with `state.synthesis_attempts == 3`:**
+   - Set `state.phase = "blocked"`.
+   - Surface the verifier's gap list to the user.
+   - Log `VERIFY_FAIL slug={slug}` and `BLOCKED_RETRIES_EXHAUSTED slug={slug}`.
+   - Exit. State is RETAINED so the user can inspect or escalate
+     (Phase 0 will not auto-restart a blocked session).
+
+## Logging
+
+Append-only events to `.omh/logs/research-{session_id}.log`. Events are
+decisions and phase transitions only — never findings content (matches
+the omh-deep-interview convention).
+
+Documented event vocabulary:
+
+- `STARTED slug={slug}`
+- `PLAN_WRITTEN slug={slug} subtopics=N`
+- `BATCH_COMPLETE batch=N subtopics=[...]`
+- `GAP_CHECK_COMPLETE gaps=N`
+- `REPORT_DRAFT`
+- `VERIFY_PASS`
+- `VERIFY_FAIL`
+- `SYNTHESIS_RETRY attempt=N`
+- `BLOCKED_RETRIES_EXHAUSTED slug={slug}`
+- `REPORT_CONFIRMED slug={slug}`
+- `REPORT_CONFIRMED_RECOVERED slug={slug}`
+- `BLOCKED slug={slug}`
+- `CANCELLED`
 
 ## Sentinel
 

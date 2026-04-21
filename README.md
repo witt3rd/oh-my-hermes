@@ -11,16 +11,26 @@ Skills work standalone with zero dependencies.
 
 | Skill | What It Does |
 |-------|--------------|
+| **omh-deep-research** | Multi-phase web research: decompose → parallel search → synthesize → verify citations |
 | **omh-ralplan** | Consensus planning: Planner → Architect → Critic debate until agreement |
 | **omh-deep-interview** | Socratic requirements interview with coverage tracking |
 | **omh-ralph** | Verified execution: implement → verify → iterate until done |
 | **omh-autopilot** | Full pipeline composing all three skills end-to-end |
 
+Composition (recommended pipeline for unfamiliar domains):
+
+```
+omh-deep-research → omh-deep-interview → omh-ralplan → omh-ralph
+```
+
+(Or fold `omh-deep-research` in as Phase -1 of `omh-autopilot` when the
+domain is unfamiliar; otherwise start at the interview.)
+
 ## Install
 
 ```bash
 hermes skills tap add witt3rd/oh-my-hermes
-hermes skills install omh-ralplan omh-deep-interview omh-ralph omh-autopilot
+hermes skills install omh-deep-research omh-ralplan omh-deep-interview omh-ralph omh-autopilot
 ```
 
 Or copy `skills/<name>/` to `~/.hermes/skills/omh/` manually.
@@ -30,6 +40,7 @@ For the optional plugin: install `plugins/omh/` to `~/.hermes/plugins/omh/`
 
 ## Getting Started
 
+- **Need background on an unfamiliar domain?** → `omh-deep-research`
 - **Just need a plan?** → `omh-ralplan`
 - **Vague idea?** → `omh-deep-interview` then `omh-ralplan`
 - **Have a plan, need execution?** → `omh-ralph`
@@ -39,6 +50,26 @@ OMH self-seeds a `.omh/` directory in the project on first use (with the
 plugin installed) — including a README explaining the convention and a
 `.gitignore` pre-configured for selective sharing. To scaffold up-front
 without running a workflow, call `omh_state(action="init")`.
+
+## Known Gaps
+
+- **wiki/fact_store/memory persistence** is not yet integrated for
+  research artifacts produced by `omh-deep-research`. The confirmed
+  report sentinel (`.omh/research/{slug}-report.md` with `status:
+  confirmed`) is the durable interface in v1; downstream skills consume
+  it directly. Persisting findings into `fact_store` or wiki is a
+  deferred Q2 item.
+- **Per-call subagent tool scoping** for the `omh-deep-research`
+  verifier may be unavailable depending on Hermes install; the
+  READ-ONLY contract is enforced by prose in `role-research-verifier.md`
+  in that case (A5).
+
+## Cost Envelope (omh-deep-research)
+
+A typical happy-path session is roughly **5-8 `delegate_task` calls**
+(3-5 researchers + 0-1 followup + 1 synthesist + 1 verifier). With one
+synthesis retry, expect **up to ~10-12 calls**. The 3-strike retry cap
+bounds worst-case at ~14-16 calls before BLOCKED is surfaced.
 
 ## Requirements
 
