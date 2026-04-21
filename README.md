@@ -35,6 +35,10 @@ For the optional plugin: install `plugins/omh/` to `~/.hermes/plugins/omh/`
 - **Have a plan, need execution?** → `omh-ralph`
 - **End-to-end?** → `omh-autopilot`
 
+OMH self-seeds a `.omh/` directory in the project on first use (with the
+plugin installed) — including a README explaining the convention and a
+`.gitignore` pre-configured for selective sharing. No separate init step.
+
 ## Requirements
 
 Hermes Agent v0.7.0+. The plugin additionally requires Python 3.10+ and
