@@ -6,11 +6,11 @@ description: >
   invocation — the caller re-invokes until all tasks pass. Enforces the Iron Law:
   every change must be verified through builds, tests, and independent review.
 version: 2.0.0
-tags: [execution, verification, persistence, iron-law, loop]
-category: omh
 metadata:
   hermes:
     requires_toolsets: [terminal, omh]
+    tags: [oh-my-hermes, productivity]
+    category: omh
 ---
 
 # OMH Ralph — Verified Execution (v2)

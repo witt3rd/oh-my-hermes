@@ -16,19 +16,25 @@ logger = logging.getLogger(__name__)
 _TOOLSET = "omh"
 
 
-def _install_skills():
-    """Install bundled skills to ~/.hermes/skills/ if not already present.
+def _install_skills(
+    skills_src_root: Path | None = None,
+    skills_dest_root: Path | None = None,
+) -> None:
+    """Install bundled skills to ~/.hermes/skills/omh/ if not already present.
 
     Skips skills that are already installed — the user's copy takes precedence.
     Uses an atomic copy-then-rename pattern to avoid partial installs.
     """
-    try:
-        from hermes_cli.config import get_hermes_home
-        skills_dest_root = get_hermes_home() / "skills"
-    except Exception:
-        skills_dest_root = Path.home() / ".hermes" / "skills"
+    if skills_dest_root is None:
+        try:
+            from hermes_cli.config import get_hermes_home
+            skills_dest_root = get_hermes_home() / "skills" / "omh"
+        except Exception:
+            skills_dest_root = Path.home() / ".hermes" / "skills" / "omh"
 
-    skills_src_root = Path(__file__).parent / "skills"
+    if skills_src_root is None:
+        skills_src_root = Path(__file__).parent / "skills"
+
     if not skills_src_root.exists():
         return
 

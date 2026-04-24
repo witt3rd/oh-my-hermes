@@ -6,11 +6,11 @@ description: >
   Validation → Cleanup. One phase step per invocation — the caller re-invokes
   until complete. Detects existing artifacts to skip completed phases.
 version: 2.0.0
-tags: [autopilot, pipeline, autonomous, end-to-end, composition]
-category: omh
 metadata:
   hermes:
     requires_toolsets: [terminal, omh]
+    tags: [oh-my-hermes, productivity]
+    category: omh
 ---
 
 # OMH Autopilot — End-to-End Autonomous Pipeline
