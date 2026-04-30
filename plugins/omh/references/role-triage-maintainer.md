@@ -19,8 +19,9 @@ You are not the issue's original author. You are not deciding priority. You are 
 - **live** — still current as written; no body changes needed
 
 You may also produce:
-- **partial-stale** — issue contains multiple sub-claims; some are stale, some are live
+- **partial-stale** — issue contains multiple sub-claims; some are stale, some are live (treated identically to `recast` by the orchestrator's resolution matrix; output should still distinguish so the recast spec can name which sub-claims are stale vs live)
 - **out-of-scope** — issue is real but belongs in a different repo (refile, don't carry)
+- **needs-investigation** — escape hatch when verdict cannot be determined without runtime reproduction or design work; orchestrator escalates to user with a proposed next-step
 
 ## Output format
 
@@ -28,7 +29,7 @@ For each issue assigned to your pass:
 
 ```
 ### #N — <title>
-**Verdict:** stale | recast | live | partial-stale | out-of-scope
+**Verdict:** stale | recast | live | partial-stale | out-of-scope | needs-investigation
 **Anchored to:** <commit-ref> | <file:line> | <test-name>
 **Reasoning:** <one paragraph; what the issue claimed, what current code shows, why the verdict>
 **If stale:** <pointer-comment text suitable for posting on close>
@@ -45,6 +46,6 @@ For each issue assigned to your pass:
 
 ## When you cannot complete a verdict
 
-If verifying the issue requires reproducing a runtime bug, designing a fix, or deciding priority — out of scope for your role. Mark "needs investigation" and name what the next role (or the user) needs to determine.
+If verifying the issue requires reproducing a runtime bug, designing a fix, or deciding priority — out of scope for your role. Return verdict **needs-investigation** and name what the next role (or the user) needs to determine.
 
 Your job ends at verdict. You do not assign priority, target version, cluster, or size.

@@ -61,7 +61,7 @@ delegate_task(
 
 The Maintainer's pass is **per-issue**. Output is structured (one block per issue with verdict + anchor + reasoning + close-comment-or-recast-spec).
 
-#### Step 2 — Skeptic pass (parallel with Maintainer if the queue is large; sequential if small)
+#### Step 2 — Skeptic pass (after Maintainer; needs Maintainer's verdicts as input)
 
 ```
 delegate_task(
@@ -74,21 +74,26 @@ The Skeptic only reviews issues the Maintainer marked live or recast. Stale/out-
 
 #### Step 3 — Orchestrator distillation
 
-The orchestrator combines Maintainer + Skeptic verdicts:
+The orchestrator combines Maintainer + Skeptic verdicts. **The matrix below is authoritative** — every Maintainer × Skeptic combination resolves to a specific disposition. Combinations not enumerated here are the only cases that escalate to user as a true conflict.
+
+The Maintainer verdict `partial-stale` (issue contains multiple sub-claims; some stale, some live) is treated identically to `recast` for matrix purposes — both signal "body needs surgery, possibly extensive." Maintainer output should still distinguish them so the recast spec can name which sub-claims are stale vs live, but the disposition resolution is the same.
 
 | Maintainer | Skeptic | Resolved disposition |
 |------------|---------|----------------------|
 | stale | (not run) | close — Maintainer pointer-comment |
 | out-of-scope | (not run) | close — refile-target named |
-| recast | keep | recast body, keep open |
-| recast | drop / wait-for-recurrence | close (Skeptic outweighs — the body needs work AND the underlying friction may not be load-bearing) |
-| recast | refile-smaller | close + reopen-as-smaller |
+| recast / partial-stale | keep | recast body, keep open |
+| recast / partial-stale | drop / wait-for-recurrence | close — Skeptic pointer-comment (the body needs work AND the underlying friction may not be load-bearing; combined verdict is "not worth the surgery") |
+| recast / partial-stale | dedup | close + comment-on-covering-issue |
+| recast / partial-stale | refile-smaller | close + reopen-as-smaller |
 | live | keep | live |
 | live | drop / wait-for-recurrence | close — Skeptic pointer-comment |
 | live | dedup | close + comment-on-covering-issue |
 | live | refile-smaller | close + reopen-as-smaller |
 
-Conflicts (Maintainer says recast/live, Skeptic says drop) get **escalated to user**, not auto-resolved. The orchestrator's job is to distill, not to decide for the user.
+The matrix is exhaustive over the verdict types in this skill (v0.1). When future versions add roles or new verdict types, the matrix expands; conflicts surface only when a *new* combination doesn't have a resolution.
+
+**The escalation case** (rare in v0.1): if a Skeptic returns `needs lived signal` (the role's escape hatch when verdict cannot be determined) — or any other unresolved value the role catalog doesn't enumerate — that's a true escalation. The orchestrator surfaces these to user as specific decision questions. The orchestrator's job is to distill, not to decide for the user when the matrix doesn't resolve.
 
 ### Phase 2: Output
 
@@ -149,9 +154,13 @@ Issues the Maintainer marked stale or out-of-scope are already moving to close. 
 
 Triage closes are durable on the issue tracker. Always stage closures with body files at `/tmp/closeN.md` and let the user approve before executing the actual close commands. The skill that runs the close after approval should loop in shell with `--comment "$(cat /tmp/closeN.md)"` (multi-paragraph quoted bodies through `terminal()` from `execute_code` fail silently — lesson from janus round 1).
 
-### T4 — Conflicts escalate, never auto-resolve
+### T4 — The matrix resolves; only un-enumerated cases escalate
 
-If Maintainer says "live, body is fine" and Skeptic says "drop, never recurred" — that's a real disagreement about whether the issue earns its slot. Surface to user; don't pick one role's verdict.
+The verdict-combination matrix in Phase 1 Step 3 is **authoritative** — `live` + `drop` resolves to "close — Skeptic pointer-comment", not to "user conflict." The matrix encodes our considered judgment that "Maintainer says live, Skeptic says drop" means *the issue is real but not worth the slot it consumes*; closing with a clear pointer-comment that invites refile-on-recurrence is the correct disposition, not a user-decision question.
+
+True escalations are: the Skeptic returns `needs lived signal` (escape hatch), the Maintainer returns `needs investigation` (escape hatch), or some future role's verdict produces a combination the matrix doesn't enumerate. These are rare in v0.1 and surface to user as specific decision questions, not as "there are some conflicts."
+
+The dispatcher should also feel free to **override the matrix** for individual issues when their own bar applied to the verdict produces a different read — but that's a dispatcher-judgment call, not a matrix conflict. Note overrides explicitly in the orchestrator review (`omh-ralplan-orchestration` P25 — skepticism over deference applies here too).
 
 ### T5 — A round produces a durable doc
 
