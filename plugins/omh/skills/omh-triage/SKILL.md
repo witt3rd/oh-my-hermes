@@ -11,7 +11,7 @@ metadata:
 
 # OMH Triage — Consensus Backlog Grooming
 
-> **v0.1 status:** This skill is **deliberately small**. It ships with two roles (Maintainer, Skeptic) and is being battle-tested before more roles are added. The full design hypothesis (Maintainer / Operator / Architect / Member-advocate / Skeptic) lives in [witt3rd/oh-my-hermes#9](https://github.com/witt3rd/oh-my-hermes/issues/9). Roles will be added as lived rounds surface real tensions that the current set cannot represent. The discipline here is *learn through use, then expand* — the inverse of authoring all five roles up-front against imagined friction.
+> **v0.1 status:** This skill is **deliberately small**. It ships with two roles (Maintainer, Skeptic) and is being battle-tested before more roles are added. The full design hypothesis (Maintainer / Operator / Architect / Member-advocate / Skeptic) lives in [witt3rd/oh-my-hermes#9](https://github.com/witt3rd/oh-my-hermes/issues/9). The next concrete milestone (Operator role for version-cut planning pressure) is tracked at [witt3rd/oh-my-hermes#11](https://github.com/witt3rd/oh-my-hermes/issues/11). Roles will be added as lived rounds surface real tensions that the current set cannot represent. The discipline here is *learn through use, then expand* — the inverse of authoring all five roles up-front against imagined friction.
 
 ## When to Use
 
