@@ -17,6 +17,8 @@ Skills work standalone with zero dependencies.
 | **omh-deep-interview** | Socratic requirements interview with coverage tracking |
 | **omh-ralph** | Verified execution: implement → verify → iterate until done |
 | **omh-ralph-driving** | Dispatcher's playbook for driving an `omh-ralph` run — plan-shape, parallel batching, evidence gathering, verifier discipline, strike categorization, Step-7 final architect review, commit hygiene |
+| **omh-triage** *(v0.1)* | Multi-role consensus triage of an issue backlog — Maintainer (code-anchored) + Skeptic (pruning); more roles coming after lived rounds. See [witt3rd/oh-my-hermes#9](https://github.com/witt3rd/oh-my-hermes/issues/9) |
+| **omh-triage-orchestration** *(v0.1)* | Dispatcher's playbook for driving an `omh-triage` run — pre-flight backlog audit, role-pass dispatch, distillation, user sign-off gate |
 | **omh-autopilot** | Full pipeline composing all three skills end-to-end |
 
 Composition (recommended pipeline for unfamiliar domains):
@@ -50,6 +52,7 @@ For local development (live edits via symlinks), see [CONTRIBUTING.md](CONTRIBUT
 - **Vague idea?** → `omh-deep-interview` then `omh-ralplan`
 - **Have a plan, need execution?** → `omh-ralph`
 - **Driving a ralph run yourself?** → `omh-ralph-driving` (load alongside `omh-ralph`)
+- **Grooming an issue backlog?** → `omh-triage` (load alongside `omh-triage-orchestration` if you're driving)
 - **End-to-end?** → `omh-autopilot`
 
 OMH self-seeds a `.omh/` directory in the project on first use (with the
