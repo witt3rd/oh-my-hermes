@@ -697,7 +697,7 @@ absent is structural. Round 2's silently-absent is contractual —
 typically about cooperation, error-handling, edge-cases the new
 structure assumes but doesn't state.
 
-### P23 — Audit parent-stance vetting state before dispatching a feature-area ralplan
+### P22 — Audit parent-stance vetting state before dispatching a feature-area ralplan
 
 A feature-area ralplan (a sub-domain ralplan inside a larger design
 tree, e.g. `docs/design/<sub-domain>/` under a project that already
