@@ -192,7 +192,7 @@ compact depends on this.
 
 See `references/orchestrator-review-template.md` for the full template.
 
-## Pitfalls (numbered P1–P22)
+## Pitfalls (numbered P1–P24)
 
 These are the failure modes that orchestrators repeatedly stumble
 into. Each was learned the hard way. Numbering is contiguous; there
@@ -697,7 +697,116 @@ absent is structural. Round 2's silently-absent is contractual —
 typically about cooperation, error-handling, edge-cases the new
 structure assumes but doesn't state.
 
-### P22 — Delegation-for-vantage works (the principle behind the method)
+### P23 — Audit parent-stance vetting state before dispatching a feature-area ralplan
+
+A feature-area ralplan (a sub-domain ralplan inside a larger design
+tree, e.g. `docs/design/<sub-domain>/` under a project that already
+has `docs/design/<parent-domain>/stance.md`) inherits its design ground
+from the parent stance. If the parent stance carries explicit positions
+that the new design would override, dispatching the feature-area
+ralplan first either re-litigates parent positions through a sub-
+domain run (wrong altitude — a feature-area ralplan should accept the
+parent's positions as constraints, not contest them) or silently
+overrides them (worse — the override is buried in feature-area
+artifacts where future readers will not know to look).
+
+The trap is amplified when the **parent stance is unvetted**: it has
+three-APPROVE consensus from a prior ralplan run but never went
+through synchronous user+orchestrator review. Such a stance carries
+positions that *might be* settled-with-the-user but functionally are
+not. A new feature-area ralplan dispatched against unvetted parent
+ground is designing on shifting earth.
+
+A second related trap: the parent stance is vetted but was authored
+**before lived-use evidence** the current session has surfaced. The
+new design discussion has reshaped what should-be-true at the parent
+level, and dispatching the feature-area ralplan would encode the
+reshape in the wrong artifact (feature-area stance, not parent
+stance).
+
+**Pre-flight check, before dispatching any non-top-level ralplan:**
+
+1. **Walk the design tree upward.** From the proposed sub-domain
+   directory, walk up through `docs/design/` — does a parent stance
+   exist? A cross-cutting stance? Sibling stances that overlap?
+
+2. **For each parent stance, check its vetting state.** Was it vetted
+   synchronously with the user (an `<orchestrator>-review.md` exists
+   AND was discussed)? Or does `plan.md` / equivalent forward-view
+   doc list a "vet this stance" gate that has not yet fired?
+
+3. **For each parent stance, walk its positions against this
+   session's reshapes.** Specifically: any user-named reframes from
+   the current session, and the contests-killed-during-iteration list.
+   Do any contradict explicit parent-stance positions?
+
+4. **If the answer to (2) or (3) is yes, the right move is one of:**
+
+   - **Pivot to parent-stance vetting first.** Author the prep doc
+     the parent's vetting gate calls for (e.g.
+     `<parent-domain>/stance-review.md`), incorporate this session's
+     evidence as a fresh lens, run the synchronous vetting gate with
+     the user, then dispatch the feature-area ralplan against
+     rectified parent ground.
+
+     **Sub-case — prep doc already exists, half-baked.** The prep doc
+     for the parent vetting gate may already exist on disk from an
+     earlier session (e.g. `stance-review.md` with Lenses 1–3 authored
+     weeks ago) without ever having been walked. Don't rewrite — *add
+     a new lens* anchored in the current session's evidence. This
+     keeps the prior lenses as provenance, scopes the rectification
+     to what's actually new, and makes the vetting walk reviewable
+     section-by-section. Field signal: you find a `stance-review.md`
+     with prior dated lenses and a "Suggested session order" that
+     names questions that were never answered. Add Lens N+1 with a
+     dated header, name in the file's frontmatter that an earlier
+     vetting was deferred, and walk all lenses in the synchronous
+     gate (the old questions may dissolve under the new evidence;
+     P20 — seeded contests can die — applies upward).
+
+     **Lived-use evidence as anchor.** When the current session's
+     reshape comes from *lived-use evidence* (the parent stance was
+     authored before the system actually ran, and now real use has
+     surfaced what didn't hold), make that explicit in the new lens.
+     Lived-use evidence has a different epistemic weight than recon
+     evidence — it's one-shot proof of failure mode, not "here's a
+     pattern that might apply." Name it as such; the user's vetting
+     decision has more grip when the evidence type is clear.
+
+   - **Make the override explicit and route through the parent.**
+     If the user's reshape genuinely belongs as an amendment to the
+     parent stance rather than a feature-area design, write the
+     amendment as a parent-level rectification in one commit, vet it,
+     then dispatch the feature-area ralplan.
+
+   - **Confirm with the user that the override is intentional and
+     scoped to the feature area.** Rare but real — sometimes a
+     feature-area design legitimately needs a position the parent
+     stance didn't anticipate, and the right move is to scope the
+     position narrowly and note it in the feature-area's
+     `context.md` constraints. Get the user's nod before committing.
+
+The wrong move is dispatching the feature-area ralplan and letting
+the loop discover the parent collision. The Critic *will* catch it
+(this is exactly the META-question's job), but the round was wasted
+producing internally-consistent feature-area work that has to be
+discarded. Pre-flight catches it without burning a round.
+
+**Field signal that this pitfall just fired:** you author `context.md`
+for a sub-domain, walk the source for required reading, and find a
+parent `stance.md` whose positions on the same questions are
+*opposite* to the direction the conversation has been going. If you
+find yourself thinking "I'll seed a contest to re-open this parent
+position" — stop. Re-opening a parent position is not a feature-area
+contest; it is a parent-stance rectification. Pivot.
+
+This pitfall sits between P10 (iterate context with user pre-dispatch)
+and P11 (don't seed contests on settled questions). P10 is about
+adding what the user knows before dispatch; P11 is about not
+re-opening what the user has settled within the same design domain.
+P23 is about not crossing design-domain boundaries silently.
+
+### P24 — Delegation-for-vantage works (the principle behind the method)
 
 This is the principle that motivates the whole skill. When the user
 would otherwise be in a turn-by-turn proposal loop, rise:
@@ -713,6 +822,101 @@ matters more than the workers' cleverness.
 If you find yourself in a turn-by-turn correction loop with the user
 on a multi-decision project: stop. Carve principles. Run ralplan.
 Review. Hand over.
+
+### P25 — Don't drop into the loop's spiral; skepticism over deference
+
+The orchestrator role exists for one reason: **to stay above the
+work** so you can dispatch with one altitude and review with
+another. The whole machinery — context package, dispatched
+subagents, named verdicts, distillation, the orchestrator review
+gate — exists so *you* keep clarity and discernment that the
+subagents inside the frame cannot have.
+
+The failure mode this pitfall names: the orchestrator gets pulled
+*down* into the loop's altitude because the loop's output feels
+meaningful. Symptoms:
+
+- A Critic counter-proposal lands that you can't quickly dismiss,
+  and your instinct is to **surface it to the user as a question**
+  rather than answer it from above.
+- You find yourself agreeing with depth-theater because you're
+  inside the spiral and the spiral *feels* like rigor.
+- The stance grows scope (a 14th principle, a new contest opened
+  by Round-1 catches, an "I should also...") and you accept the
+  growth instead of cutting it.
+- Round 2 feels mandatory because the catches "must be addressed"
+  rather than because the catches are genuinely load-bearing.
+- You find yourself authoring within the loop (carving language,
+  proposing reframings) — pulled down from dispatcher to worker.
+
+The structural fix is **skepticism, not deference.** Trust given
+to you (by the user installing you as orchestrator) is meant to
+be **USED**, not held in reserve until the user reactivates it
+through correction.
+
+Operational discipline:
+
+1. **The first move on any Critic / Architect catch is your own
+   judgment, not the user's.** Read the catch. Apply your own
+   bar. If it's depth-theater, dismiss it from above; the
+   orchestrator review section is where you say so. If it's
+   genuinely load-bearing, route it to Round 2 with explicit
+   framing. Never *first* surface to the user as "what should we
+   do?" — that's deference.
+
+2. **Watch for metaphysical / governance-level catches** — claims
+   like "convergence is X's act" or "this needs a 14th principle"
+   that the loop produced. These are very rarely the right shape
+   for a feature-area ralplan. The Critic *should* contest framing
+   (P4 META question) but framing-contest results rarely belong
+   in the canonical stance — they belong in the orchestrator
+   review as "the loop surfaced X; here's why it's not a stance
+   change."
+
+3. **If the stance is more than ~50% of the size you expected,
+   pause and ask why.** Volume is a tell. If the design problem
+   is "extend an existing system with a new instance of the same
+   shape" (P12 continuity), the stance should not produce a
+   first-principles re-derivation of the system. If you find
+   yourself reading 5000+ words of new doctrine for what should
+   have been ~1500 words of "do this, then this, then this,"
+   the loop has spiraled and you are inside it.
+
+4. **The user's continuity-check question is a tell.** If the
+   user reads what you produced and reacts with "this seems like
+   over-engineering" / "you're blowing this out of proportion" /
+   "we just need to extend X" — that *is* the altitude correction.
+   The right response is not Round 2 with the user's correction
+   folded in; the right response is to **close the run and pivot
+   to a different altitude entirely** (often: requirements-first,
+   classical layer below ralplan).
+
+5. **Pivot to requirements when the design pass produced design-
+   theater.** Requirements are technology-agnostic, lean, and
+   produce a constraint surface the design pass can be honestly
+   small against. P15 names that requirements and stances are
+   different artifacts; this pitfall extends that — sometimes the
+   right move after a sprawling stance is *backward* to the
+   requirements layer the stance should have been authored against,
+   not *forward* to another round.
+
+6. **Author the orchestrator review honestly.** If the loop
+   produced more ceremony than rigor, **say so in the review** and
+   either re-run with a tightened scope or pivot. The "do not hand
+   the user output below your own bar" discipline is exactly here:
+   the altitude compact depends on you being honest about what
+   the loop produced. *(Field signal that this pitfall just fired:
+   you are about to write "the loop surfaced some interesting
+   questions" or "<user> may want to weigh in on..." — both are
+   the orchestrator dropping back into the user's altitude. The
+   orchestrator review's job is to apply YOUR bar; if the bar
+   wasn't met, that's a fact the review names, not a question for
+   the user to settle.)*
+
+The trust the orchestrator was given **is the discernment**. Using
+it is the role. Surfacing every catch to the user as a question
+inverts the role into "subagent to user" — which is exactly the
+turn-by-turn correction loop ralplan was built to avoid (P24).
 
 ## Template for the delegate_task goal
 
