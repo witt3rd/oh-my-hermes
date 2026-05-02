@@ -160,7 +160,7 @@ The verdict-combination matrix in Phase 1 Step 3 is **authoritative** — `live`
 
 True escalations are: the Skeptic returns `needs lived signal` (escape hatch), the Maintainer returns `needs investigation` (escape hatch), or some future role's verdict produces a combination the matrix doesn't enumerate. These are rare in v0.1 and surface to user as specific decision questions, not as "there are some conflicts."
 
-The dispatcher should also feel free to **override the matrix** for individual issues when their own bar applied to the verdict produces a different read — but that's a dispatcher-judgment call, not a matrix conflict. Note overrides explicitly in the orchestrator review (`omh-ralplan-orchestration` P25 — skepticism over deference applies here too).
+The dispatcher should also feel free to **override the matrix** for individual issues when their own bar applied to the verdict produces a different read — but that's a dispatcher-judgment call, not a matrix conflict. Note overrides explicitly in the orchestrator review (`omh-ralplan-driver` P25 — skepticism over deference applies here too).
 
 ### T5 — A round produces a durable doc
 
@@ -172,8 +172,8 @@ This skill is v0.1 deliberately. The OMH#9 design names five roles; only two shi
 
 ## Pairs With
 
-- `omh-triage-orchestration` — the dispatcher's playbook (when to invoke, how to drive, what good output looks like)
-- `omh-ralplan-orchestration` — analogous skill for the design layer; the discipline patterns are similar
+- `omh-triage-driver` — the dispatcher's playbook (when to invoke, how to drive, what good output looks like)
+- `omh-ralplan-driver` — analogous skill for the design layer; the discipline patterns are similar
 - `omh-deep-interview` — for ambiguous issues that need clarification before triage can decide
 
 ## See Also

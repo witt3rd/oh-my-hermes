@@ -1,5 +1,5 @@
 ---
-name: omh-ralplan-orchestration
+name: omh-ralplan-driver
 description: >
   How to drive an omh-ralplan run well as the dispatcher — from the
   context package (where quality is born) through round dispatch,

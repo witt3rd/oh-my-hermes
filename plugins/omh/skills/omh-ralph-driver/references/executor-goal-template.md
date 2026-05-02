@@ -110,7 +110,7 @@ as test-after coding and request changes.
 
 - Stage explicitly: `git add <each file from "Files this task owns">`.
   Do NOT `git add -A`. Sibling tasks may have uncommitted files in
-  the working tree (see P9 in `omh-ralph-driving` SKILL.md).
+  the working tree (see P9 in `omh-ralph-driver` SKILL.md).
 - Run `git status` before commit. If sibling task files are present
   and unstaged, do NOT include them. If they're staged from a prior
   step in your own work, that's fine.
