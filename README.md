@@ -17,6 +17,7 @@ Skills work standalone with zero dependencies.
 | **omh-deep-interview** | Socratic requirements interview with coverage tracking |
 | **omh-ralph** | Verified execution: implement → verify → iterate until done |
 | **omh-ralph-driver** | Dispatcher's playbook for driving an `omh-ralph` run — plan-shape, parallel batching, evidence gathering, verifier discipline, strike categorization, Step-7 final architect review, commit hygiene |
+| **omh-ralph-executor** | Executor's discipline for a single `omh-ralph` task — task-envelope contract, file-scope rigidity, stash-verify-against-HEAD for sibling-task isolation, commit-author override, structured report-back shape |
 | **omh-triage** *(v0.1)* | Multi-role consensus triage of an issue backlog — Maintainer (code-anchored) + Skeptic (pruning); more roles coming after lived rounds. See [witt3rd/oh-my-hermes#9](https://github.com/witt3rd/oh-my-hermes/issues/9) |
 | **omh-triage-driver** *(v0.1)* | Dispatcher's playbook for driving an `omh-triage` run — pre-flight backlog audit, role-pass dispatch, distillation, user sign-off gate |
 | **omh-autopilot** | Full pipeline composing all three skills end-to-end |
@@ -34,7 +35,7 @@ domain is unfamiliar; otherwise start at the interview.)
 
 ```bash
 hermes skills tap add witt3rd/oh-my-hermes
-hermes skills install omh-deep-research omh-ralplan omh-ralplan-driver omh-deep-interview omh-ralph omh-ralph-driver omh-autopilot
+hermes skills install omh-deep-research omh-ralplan omh-ralplan-driver omh-deep-interview omh-ralph omh-ralph-driver omh-ralph-executor omh-autopilot
 ```
 
 Or copy `skills/<name>/` to `~/.hermes/skills/omh/` manually.
