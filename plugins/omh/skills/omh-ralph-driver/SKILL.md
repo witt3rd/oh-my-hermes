@@ -1,5 +1,5 @@
 ---
-name: omh-ralph-driving
+name: omh-ralph-driver
 description: >
   How to drive an omh-ralph run well as the dispatcher — plan-shape,
   iteration cadence, parallel batching, evidence gathering, verifier
@@ -19,7 +19,7 @@ metadata:
     requires_toolsets: [terminal, omh]
 ---
 
-# OMH Ralph Driving — orchestrator's playbook for verified execution
+# OMH Ralph Driver — orchestrator's playbook for verified execution
 
 Load this skill alongside `omh-ralph` when you are the orchestrator
 dispatching the loop. `omh-ralph` is loaded by the role-tagged
@@ -33,7 +33,7 @@ The two skills have different readers and different jobs. Don't merge
 them — worker context is precious; the dispatcher's playbook should
 not ride into every subagent.
 
-This skill is the ralph-side counterpart to `omh-ralplan-orchestration`
+This skill is the ralph-side counterpart to `omh-ralplan-driver`
 (which is the dispatcher playbook for ralplan, the design loop). The
 relationship is consistent: each method has a worker-side skill (used
 inside delegate_task) and a driver-side skill (used by the orchestrator
@@ -614,7 +614,7 @@ a pitfall is general enough to teach a future orchestrator.
   delegate_task. Required reading for the orchestrator (one-off, to
   understand what the workers are doing) but not loaded into worker
   context (they auto-inject role prompts via the plugin).
-- `omh-ralplan-orchestration` — the dispatcher playbook for the
+- `omh-ralplan-driver` — the dispatcher playbook for the
   design loop. Use BEFORE ralph if no plan exists yet. Same shape
   (driver-side skill) for a different method (consensus design vs
   verified execution).

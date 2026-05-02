@@ -5,7 +5,7 @@ distilled output before any closures, recasts, or board updates execute.
 
 This is **your bar applied honestly**. If the run produced more
 ceremony than rigor — say so. Don't push verdicts to the user that
-you don't believe yourself. (See `omh-ralplan-orchestration` P25.)
+you don't believe yourself. (See `omh-ralplan-driver` P25.)
 
 ---
 
@@ -42,7 +42,7 @@ you don't believe yourself. (See `omh-ralplan-orchestration` P25.)
 ## Lessons I'd fold into the skill if you agree
 
 <L1, L2, ... — observations from this run that may want patching
-into omh-triage / omh-triage-orchestration / host PROCESS.md.>
+into omh-triage / omh-triage-driver / host PROCESS.md.>
 
 ## My honest assessment
 
@@ -67,5 +67,5 @@ the skill (T6 — running too often or under-pressing roles).>
 The honesty discipline is load-bearing: if you find yourself writing
 "the loop surfaced some interesting questions" or "the user may want
 to weigh in on..." for everything — both are signals that you've
-dropped to the loop's altitude. Read `omh-ralplan-orchestration` P25
+dropped to the loop's altitude. Read `omh-ralplan-driver` P25
 for the full treatment.

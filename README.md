@@ -13,12 +13,13 @@ Skills work standalone with zero dependencies.
 |-------|--------------|
 | **omh-deep-research** | Multi-phase web research: decompose → parallel search → synthesize → verify citations |
 | **omh-ralplan** | Consensus planning: Planner → Architect → Critic debate until agreement |
-| **omh-ralplan-orchestration** | Dispatcher's playbook for driving an `omh-ralplan` run — context-package authoring (where quality is born), round dispatch, distillation, final review |
+| **omh-ralplan-driver** | Dispatcher's playbook for driving an `omh-ralplan` run — context-package authoring (where quality is born), round dispatch, distillation, final review |
 | **omh-deep-interview** | Socratic requirements interview with coverage tracking |
 | **omh-ralph** | Verified execution: implement → verify → iterate until done |
-| **omh-ralph-driving** | Dispatcher's playbook for driving an `omh-ralph` run — plan-shape, parallel batching, evidence gathering, verifier discipline, strike categorization, Step-7 final architect review, commit hygiene |
+| **omh-ralph-driver** | Dispatcher's playbook for driving an `omh-ralph` run — plan-shape, parallel batching, evidence gathering, verifier discipline, strike categorization, Step-7 final architect review, commit hygiene |
+| **omh-ralph-executor** | Executor's discipline for a single `omh-ralph` task — task-envelope contract, file-scope rigidity, stash-verify-against-HEAD for sibling-task isolation, commit-author override, structured report-back shape |
 | **omh-triage** *(v0.1)* | Multi-role consensus triage of an issue backlog — Maintainer (code-anchored) + Skeptic (pruning); more roles coming after lived rounds. See [witt3rd/oh-my-hermes#9](https://github.com/witt3rd/oh-my-hermes/issues/9) |
-| **omh-triage-orchestration** *(v0.1)* | Dispatcher's playbook for driving an `omh-triage` run — pre-flight backlog audit, role-pass dispatch, distillation, user sign-off gate |
+| **omh-triage-driver** *(v0.1)* | Dispatcher's playbook for driving an `omh-triage` run — pre-flight backlog audit, role-pass dispatch, distillation, user sign-off gate |
 | **omh-autopilot** | Full pipeline composing all three skills end-to-end |
 
 Composition (recommended pipeline for unfamiliar domains):
@@ -34,7 +35,7 @@ domain is unfamiliar; otherwise start at the interview.)
 
 ```bash
 hermes skills tap add witt3rd/oh-my-hermes
-hermes skills install omh-deep-research omh-ralplan omh-ralplan-orchestration omh-deep-interview omh-ralph omh-ralph-driving omh-autopilot
+hermes skills install omh-deep-research omh-ralplan omh-ralplan-driver omh-deep-interview omh-ralph omh-ralph-driver omh-ralph-executor omh-autopilot
 ```
 
 Or copy `skills/<name>/` to `~/.hermes/skills/omh/` manually.
@@ -48,11 +49,11 @@ For local development (live edits via symlinks), see [CONTRIBUTING.md](CONTRIBUT
 
 - **Need background on an unfamiliar domain?** → `omh-deep-research`
 - **Just need a plan?** → `omh-ralplan`
-- **Driving a ralplan run yourself?** → `omh-ralplan-orchestration` (load alongside `omh-ralplan`)
+- **Driving a ralplan run yourself?** → `omh-ralplan-driver` (load alongside `omh-ralplan`)
 - **Vague idea?** → `omh-deep-interview` then `omh-ralplan`
 - **Have a plan, need execution?** → `omh-ralph`
-- **Driving a ralph run yourself?** → `omh-ralph-driving` (load alongside `omh-ralph`)
-- **Grooming an issue backlog?** → `omh-triage` (load alongside `omh-triage-orchestration` if you're driving)
+- **Driving a ralph run yourself?** → `omh-ralph-driver` (load alongside `omh-ralph`)
+- **Grooming an issue backlog?** → `omh-triage` (load alongside `omh-triage-driver` if you're driving)
 - **End-to-end?** → `omh-autopilot`
 
 OMH self-seeds a `.omh/` directory in the project on first use (with the

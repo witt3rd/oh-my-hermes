@@ -1,5 +1,5 @@
 ---
-name: omh-triage-orchestration
+name: omh-triage-driver
 description: "Dispatcher's playbook for omh-triage runs (when to invoke, how to drive)"
 version: 0.1.0
 metadata:
@@ -9,9 +9,9 @@ metadata:
     requires_toolsets: [terminal, omh, delegation]
 ---
 
-# OMH Triage Orchestration — Driving a Triage Run
+# OMH Triage Driver — Driving a Triage Run
 
-> **v0.1 status:** Like the worker skill (`omh-triage`), this dispatcher's playbook is deliberately small. Pitfalls accumulate through lived rounds. The `omh-ralplan-orchestration` skill is the structural model — that one shipped to 25 numbered pitfalls only after multiple real runs surfaced each failure mode. This one starts at T1–T6 and grows.
+> **v0.1 status:** Like the worker skill (`omh-triage`), this dispatcher's playbook is deliberately small. Pitfalls accumulate through lived rounds. The `omh-ralplan-driver` skill is the structural model — that one shipped to 25 numbered pitfalls only after multiple real runs surfaced each failure mode. This one starts at T1–T6 and grows.
 
 ## When You Are the Orchestrator
 
@@ -107,7 +107,7 @@ Closures are durable. A wrongly-closed issue is much harder to recover than a wr
 
 ### T5 — Conflicts presented as questions, not as decisions
 
-When the roles disagree, your distillation should produce a **specific decision question for the user** — not a generic "there's some disagreement on these N issues." Frame each conflict as: "Maintainer says X for reason A; Skeptic says Y for reason B; my recommendation is Z." Then ask. (See `omh-ralplan-orchestration` P25 — skepticism over deference.)
+When the roles disagree, your distillation should produce a **specific decision question for the user** — not a generic "there's some disagreement on these N issues." Frame each conflict as: "Maintainer says X for reason A; Skeptic says Y for reason B; my recommendation is Z." Then ask. (See `omh-ralplan-driver` P25 — skepticism over deference.)
 
 ### T6 — Running too often
 
@@ -121,5 +121,5 @@ Grooming is not a daily activity. If you find yourself dispatching `omh-triage` 
 ## Pairs With
 
 - `omh-triage` — the worker skill
-- `omh-ralplan-orchestration` — the structural model this followed
+- `omh-ralplan-driver` — the structural model this followed
 - The host project's `docs/triage/PROCESS.md` if one exists (defines the two-mode quick-file/grooming discipline that triage runs *within*)

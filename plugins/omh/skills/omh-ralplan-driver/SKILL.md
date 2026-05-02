@@ -1,5 +1,5 @@
 ---
-name: omh-ralplan-orchestration
+name: omh-ralplan-driver
 description: >
   How to drive an omh-ralplan run well as the dispatcher — from the
   context package (where quality is born) through round dispatch,
@@ -15,7 +15,7 @@ metadata:
     requires_toolsets: [terminal, omh]
 ---
 
-# OMH Ralplan Orchestration — driving the loop
+# OMH Ralplan Driver — driving the loop
 
 Load this skill alongside `omh-ralplan` when you are the orchestrator
 dispatching the loop. `omh-ralplan` is loaded by the Planner / Architect
@@ -1021,6 +1021,70 @@ delivered and reports being lost / dissociated / unable to give
 judgment. **Do not respond by adding more to the deep review.**
 Respond by extracting a brief from it and patching the skill so
 future runs default to brief-as-delivery.
+
+#### The same frame applies pre-dispatch — brief, don't ask
+
+The brief-as-delivery discipline above governs the *post-distillation*
+hand-off. The same presidential-briefing frame applies *earlier*, at
+**pre-dispatch decision moments** (P10 walks, P18 mid-session
+reframes, premise pre-settlements, multi-question batches). The
+failure mode there is symmetrical: the orchestrator hands the user
+open-ended questions — *"what do you think about X?"*, *"should we
+Y or Z?"* — instead of a structured briefing. The user has to
+construct the analysis from scratch; the orchestrator avoids
+committing to a position.
+
+Discipline at pre-dispatch is the same shape, compressed for inline
+flow. Each decision-briefing has four sections, in order:
+
+1. **The question.** One paragraph naming what's being decided.
+   Concrete, specific, no preamble.
+2. **What's at stake.** Two short paragraphs naming the trade-offs.
+   Both options' costs, both options' benefits, what fails in each
+   case. Not balanced if the trade-off isn't balanced — say which
+   side has the asymmetry.
+3. **My recommendation.** One sentence followed by 2–4 reasons,
+   each one sentence. The orchestrator owns this — don't hide
+   behind "you decide." If you genuinely don't have a
+   recommendation, that is a different shape (clarify-before-
+   deciding); brief that explicitly.
+4. **What hangs on it.** Concrete consequences: which file changes,
+   which design decisions cascade, what gets simpler or harder
+   downstream.
+
+Why this works pre-dispatch:
+
+- The user can ratify ("yes" / "all three" / "go") without
+  rebuilding the analysis. Most pre-dispatch decisions are calls
+  the user agrees with the orchestrator on once it's framed
+  correctly.
+- When the user *does* push back, the pushback is precise — they
+  have the same frame to work in.
+- The orchestrator is forced to actually take a position. *"What
+  do you think?"* lets the orchestrator avoid commitment; the
+  briefing format requires you to recommend.
+
+When to brief pre-dispatch:
+- Pre-dispatch settlements (load-bearing premises that would
+  otherwise be Round-1 contests).
+- Mid-session reframes when the user shifts the architectural
+  ground (P18).
+- Multi-question batches where independent decisions cluster.
+
+When NOT to brief:
+- Single-step mechanical decisions (*"commit this?"* — just
+  commit it).
+- Things the user has already committed to (don't re-litigate).
+- Genuinely open questions that need conversation, not
+  ratification (*"what's the v12 theme?"* — that's a discussion).
+
+**The format is the discipline.** You may compress for short
+briefings (one paragraph each), but the *structure* — what's at
+stake, recommendation, consequences — earns its place even at
+small scale. The post-distillation brief and the pre-dispatch
+briefing are two faces of the same orchestrator move: take a
+position, lay out what hangs on it, let the user ratify or push
+back from a shared frame.
 
 See `references/brief-template.md` for the structural template.
 
