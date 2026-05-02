@@ -7,7 +7,7 @@ description: >
   half this skill: the META question, seeded contests, required
   reading discipline, and pre-flight pitfalls are what make the loop
   produce truth instead of internal consistency.
-version: 1.0.0
+version: 1.1.0
 metadata:
   hermes:
     tags: [planning, ralplan, orchestration, multi-agent, consensus]
@@ -175,8 +175,26 @@ short summary — grep-able, survives session rotation.
 ### 5. Orchestrator review, then bring to user
 
 The orchestrator's own review is the final gate before the user sees
-anything. Write it as `<orchestrator>-review.md` (e.g. `forge-review.md`,
-or domain-appropriate name). Say:
+anything. **Write two artifacts**, not one:
+
+- **`brief.md`** — what the user reads. Decisions-first. ~1–2 pages.
+  Resolved decisions on top, deviations from pre-dispatch
+  conversation named, where the design landed in one paragraph,
+  open questions left, next steps. The user must be able to **give
+  judgment** from this alone — never force them to read the deep
+  review just to know what to decide.
+
+- **`<orchestrator>-review-deep.md`** — the archive. Internal chatter,
+  full reasoning, deference tests, run-method observations,
+  altitude addendum, what-the-Critic-caught-narratively. Lives on
+  disk for archaeology and for the rare moment the user wants the
+  full lens. **Default-not-read.** Replaces what older runs called
+  `<orchestrator>-review.md`.
+
+The brief is for delivery; the deep review is for the record. Treat
+them as different artifacts with different readers.
+
+What the deep review carries (same as before):
 
 - Does this meet my bar? (Yes/no + why.)
 - What the Critic caught that surprised me.
@@ -185,14 +203,27 @@ or domain-appropriate name). Say:
 - Where I predict the user will push back — give them priming
   before they read.
 - What this run taught me about the method.
+- Provisos folded during distillation (if any).
 
-If the review is weak, run another round or strengthen the principles.
-**Do not hand the user output below your own bar** — the altitude
-compact depends on this.
+What the brief carries (decisions-first, see P26 + template):
 
-See `references/orchestrator-review-template.md` for the full template.
+- Decisions you need from the user, numbered, with my-take on each.
+- Where I deviated from pre-dispatch conversation (be specific).
+- One-paragraph "where the design landed."
+- Open questions left for v2 / lived friction.
+- Next steps.
 
-## Pitfalls (numbered P1–P24)
+If the deep review is weak, run another round or strengthen the
+principles. **Do not hand the user output below your own bar** —
+the altitude compact depends on this. The brief is what tests the
+compact: if you cannot reduce the deep review to a clean
+decisions-first brief, you do not have the altitude you think you
+have.
+
+See `references/orchestrator-review-template.md` for the deep-review
+template and `references/brief-template.md` for the brief template.
+
+## Pitfalls (numbered P1–P26)
 
 These are the failure modes that orchestrators repeatedly stumble
 into. Each was learned the hard way. Numbering is contiguous; there
@@ -731,9 +762,10 @@ stance).
    exist? A cross-cutting stance? Sibling stances that overlap?
 
 2. **For each parent stance, check its vetting state.** Was it vetted
-   synchronously with the user (an `<orchestrator>-review.md` exists
-   AND was discussed)? Or does `plan.md` / equivalent forward-view
-   doc list a "vet this stance" gate that has not yet fired?
+   synchronously with the user (an `<orchestrator>-review-deep.md`
+   exists AND a `brief.md` was discussed)? Or does `plan.md` /
+   equivalent forward-view doc list a "vet this stance" gate that
+   has not yet fired?
 
 3. **For each parent stance, walk its positions against this
    session's reshapes.** Specifically: any user-named reframes from
@@ -918,6 +950,86 @@ it is the role. Surfacing every catch to the user as a question
 inverts the role into "subagent to user" — which is exactly the
 turn-by-turn correction loop ralplan was built to avoid (P24).
 
+### P26 — Deliver decisions-first; deep review is for the archive
+
+The orchestrator's deep review (`<orchestrator>-review-deep.md` —
+see step 5) is comprehensive: round tally, what-the-Critic-caught,
+where-I-push-back, where-I-think-the-user-will-push-back, what-this-
+run-proved-about-the-method, altitude addendum. It is honest. It is
+also **the wrong artifact to hand the user when you need a decision.**
+
+The failure mode this pitfall names: the orchestrator writes a
+strong deep review, the user reads it, and the user reports being
+"comprehensive and dense, yet oddly terse... I read a lot of this
+detail and am somewhat lost and dissociated. I really need you to
+bring me back a set of decisions you need me to make, even if
+agreement on something that was different from what we discussed
+and why."
+
+Translation: the deep review surfaces internal chatter the user
+already trusted you to handle. It demands the user re-traverse
+reasoning the loop already collapsed. It conflates *show your work*
+(which the deep review does) with *give me what I need to give
+judgment* (which is a different artifact). An executive presented
+with the deep review cannot give judgment from it; an executive
+presented with a brief can.
+
+Discipline:
+
+1. **Two artifacts at the orchestrator-review step, not one.** Deep
+   review for the archive (preserves provenance and your honest
+   self-assessment). Brief for delivery. Step 5 of the playbook
+   spells out both; honor it.
+
+2. **Decisions-first in the brief.** Lead with the decisions the
+   user needs to make, numbered. For each decision, state your-take
+   *and* the alternative. The user can scan, decide, return — they
+   should not need to read the deep review to know what they are
+   deciding.
+
+3. **Name deviations from pre-dispatch conversation explicitly.**
+   The user spent effort working through big rocks, nuances, and
+   considerations with you up-front. If the loop produced something
+   different from what you discussed, **say so in the brief** with
+   why. Hidden deviations corrode trust faster than admitted ones.
+
+4. **Where the design landed in one paragraph, not eight.** The deep
+   review's "where the stance ended up" 5–8 paragraph treatment
+   belongs in the deep review. The brief gets one paragraph that a
+   reader can hold in working memory while deciding.
+
+5. **Open questions and next steps belong in the brief.** They are
+   user-actionable. The internal chatter (deference tests,
+   altitude observations, pitfall-naming for the skill) belongs
+   only in the deep review.
+
+6. **The brief is the test of altitude.** If you cannot reduce the
+   deep review to a clean decisions-first brief, **you do not have
+   the altitude you think you have.** Write the brief; if it
+   sprawls, that is a signal — not to ship a longer brief, but to
+   re-run the distillation pass on the *deep review* until the
+   brief lands clean.
+
+7. **When the user reads only the brief, that is the success
+   condition, not the failure mode.** Many runs the user will
+   never read the deep review. That is correct. The deep review
+   is provenance; the brief is delivery.
+
+Field signal that this pitfall just fired: the user reads what you
+delivered and reports being lost / dissociated / unable to give
+judgment. **Do not respond by adding more to the deep review.**
+Respond by extracting a brief from it and patching the skill so
+future runs default to brief-as-delivery.
+
+See `references/brief-template.md` for the structural template.
+
+This pitfall also fixes a definitional ambiguity earlier sections
+(P19, the orchestrator-review template) carried: when those
+sections say "the orchestrator review," they mean the deep review
+(`<orchestrator>-review-deep.md`). Provisos still get folded in
+the deep review's distillation section; the brief simply doesn't
+need to surface them unless one of them rises to a user-decision.
+
 ## Template for the delegate_task goal
 
 ```
@@ -971,7 +1083,8 @@ docs/design/<domain>/
 ├── review-architect-v2.md   ← Round 2
 ├── review-critic-v2.md      ← Round 2
 ├── stance.md                ← distilled from v2; canonical user-read
-├── <orchestrator>-review.md ← orchestrator's final assessment
+├── brief.md                      ← decisions-first, what the user reads
+├── <orchestrator>-review-deep.md ← orchestrator's archive deep review
 └── (later) implementation-plan.md
 ```
 
@@ -1061,3 +1174,15 @@ verify external premises, settle filesystem layout, walk it with the
 user, kill phantom contests on reframe. Most pitfalls in this skill
 are pre-dispatch failures. Treat the package as the load-bearing
 artifact it is.
+
+Fifth: **decisions-first delivery, deep review for the archive.**
+At the orchestrator-review step, write two artifacts: `brief.md`
+(what the user reads to give judgment, decisions-first, ~1 page)
+and `<orchestrator>-review-deep.md` (provenance, internal chatter,
+the honest self-assessment). The user must be able to give judgment
+from the brief alone — never make them traverse the deep review
+just to know what to decide. P26 names this and the failure mode
+(handing the comprehensive deep review when an executive-style
+brief was needed). The brief is the test of altitude: if you cannot
+distill the deep review into a clean decisions-first brief, you do
+not have the altitude you think you have.

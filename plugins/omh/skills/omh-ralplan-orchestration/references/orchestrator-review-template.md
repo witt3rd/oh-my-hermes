@@ -1,20 +1,29 @@
-# Orchestrator review template
+# Orchestrator deep-review template
 
-Used when writing the orchestrator's final review (e.g.
-`<orchestrator>-review.md`) — the honest assessment of the ralplan
-output, before handing to the user.
+Used when writing the orchestrator's deep review (e.g.
+`<orchestrator>-review-deep.md`) — the honest assessment of the
+ralplan output that lives in the archive.
+
+**This is NOT what the user reads to give judgment.** That is the
+brief (`brief.md`, see `brief-template.md`). The deep review is
+the provenance: full reasoning, deference tests, internal chatter,
+altitude observations. It captures *what you saw*; the brief
+captures *what the user must see*. See P26 for why these are two
+artifacts, not one.
 
 This is the final quality gate. If what you write here feels weak,
 the stance is not ready. Run another round, strengthen principles,
-or fix the context package.
+or fix the context package. **Then** distill the brief from the
+deep review.
 
 ```markdown
-# <Orchestrator>'s review of the <domain> ralplan output
+# <Orchestrator>'s deep review of the <domain> ralplan output
 
-**For:** <user>, when you read.
+**For:** archive (and the user, if they want the full lens).
+**Brief delivered separately:** `brief.md` (decisions-first, ~1 page).
 **From:** <orchestrator>
 **Date:** <date>
-**Stance file:** <path to stance.md> (read this *after* these notes)
+**Stance file:** <path to stance.md>
 
 ---
 
@@ -30,8 +39,8 @@ naming of the moves that made the output good.>
 ## Where the stance ended up
 
 <5-8 paragraphs. The dimensions, the load-bearing positions, what
-was retired, the MV first shape. Enough that the user understands
-the shape without having to read stance.md first.>
+was retired, the MV first shape. Enough that someone reading only
+this review (skipping stance.md) understands the shape.>
 
 ## Where I push back, gently
 
@@ -60,10 +69,10 @@ Format:
 This keeps provenance honest: the stance is the consensus product,
 but this review records what was folded vs what was punted.>
 
-## Summary for your review
+## Summary for the archive
 
-<5-bullet summary. End with: "ready for your read." Or
-not-ready-and-why.>
+<5-bullet summary. End with the brief's location:
+"Brief delivered at brief.md.">
 
 ---
 
@@ -76,7 +85,7 @@ loop would have been, and the principles-as-guardrails worked." Note
 when this fires; it's the value the orchestrator exists to deliver.>
 ```
 
-## What makes a review honest vs performative
+## What makes a deep review honest vs performative
 
 **Honest:**
 - Names specific things the Critic caught that the orchestrator
@@ -98,11 +107,22 @@ when this fires; it's the value the orchestrator exists to deliver.>
 ~1500-3000 words typical. If under 1000, you didn't engage deeply.
 If over 5000, you are re-writing the stance; stop.
 
-## One discipline: read the stance twice before writing the review
+## One discipline: read the stance twice before writing the deep review
 
 First pass: does it meet the done-criteria in context.md?
 Second pass: what would a skeptical user ask first?
 
-The review is written against the second-pass mental state, not the
-first. Compliance-checking is the Architect's job; the orchestrator's
-review is about whether the work is *good*.
+The deep review is written against the second-pass mental state, not
+the first. Compliance-checking is the Architect's job; the
+orchestrator's deep review is about whether the work is *good*.
+
+## After the deep review: write the brief
+
+The deep review is for the archive. The brief
+(`references/brief-template.md`) is for the user. Do not skip the
+brief — handing the user the deep review when they need a decision
+is the P26 failure.
+
+If you cannot reduce the deep review to a clean decisions-first
+brief, you do not have the altitude you think you have. Re-distill
+the deep review until the brief lands clean.
