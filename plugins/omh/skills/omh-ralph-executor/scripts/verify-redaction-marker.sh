@@ -30,6 +30,11 @@ FILE="$1"
 LINE="$2"
 PATTERN="${3:-}"
 
+if [[ ! "$LINE" =~ ^[1-9][0-9]*$ ]]; then
+    echo "error: line number must be a positive integer, got: $LINE" >&2
+    exit 1
+fi
+
 if [[ ! -f "$FILE" ]]; then
     echo "error: file not found: $FILE" >&2
     exit 1
@@ -62,15 +67,21 @@ print(repr(lines[int(sys.argv[2]) - 1]))
 echo
 
 if git -C "$(dirname "$FILE")" rev-parse --git-dir >/dev/null 2>&1; then
-    REL=$(git -C "$(dirname "$FILE")" ls-files --full-name "$(basename "$FILE")" 2>/dev/null || true)
-    if [[ -n "$REL" ]]; then
-        echo "--- 4) git show HEAD:${REL} | sed -n '${LINE}p' | od -c (committed bytes) ---"
-        if git -C "$(dirname "$FILE")" show "HEAD:$REL" 2>/dev/null | sed -n "${LINE}p" | od -c; then
-            :
-        else
-            echo "(file not in HEAD or path differs from working tree)"
+    REPO_ROOT=$(git -C "$(dirname "$FILE")" rev-parse --show-toplevel 2>/dev/null || true)
+    if [[ -n "$REPO_ROOT" ]]; then
+        # Resolve $FILE to a path relative to the repo root so nested paths
+        # (e.g. plugins/.../SKILL.md) work for `git show HEAD:<path>`.
+        ABS_FILE=$(cd "$(dirname "$FILE")" && pwd -P)/$(basename "$FILE")
+        REL=$(python3 -c "import os, sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))" "$ABS_FILE" "$REPO_ROOT" 2>/dev/null || true)
+        if [[ -n "$REL" && "$REL" != ..* ]]; then
+            echo "--- 4) git show HEAD:${REL} | sed -n '${LINE}p' | od -c (committed bytes) ---"
+            if git -C "$REPO_ROOT" show "HEAD:$REL" 2>/dev/null | sed -n "${LINE}p" | od -c; then
+                :
+            else
+                echo "(file not in HEAD or path differs from working tree)"
+            fi
+            echo
         fi
-        echo
     fi
 fi
 

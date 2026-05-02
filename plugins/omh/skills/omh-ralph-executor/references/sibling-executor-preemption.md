@@ -4,7 +4,7 @@ A real iteration where another executor running the same retry landed the fix on
 
 ## Setup
 
-- Repo: `~/src/li/janus-plugin-v12`, branch `v12`
+- Repo: `<repo-path>`, branch `v12`
 - HEAD at retry-start: `efa058d` (task-2 prior commit)
 - Strike: strike-1 IMPLEMENTATION-BUG, error key `token-not-injected-into-fetch-url`
 - Bug spec: `migrate.py:289` substituted literal `***` for the real token in an f-string. Verifier's one-liner fix: `f"https://x-access-token:{token}@"`.
@@ -15,7 +15,7 @@ A real iteration where another executor running the same retry landed the fix on
 By the time this executor's first patch fired, a sibling subagent (`sa-0-4626183c`) had already applied the same one-liner to `migrate.py`. The patch tool reported success but flagged it:
 
 ```
-_warning: "/home/dt/.../migrate.py was modified by sibling subagent
+_warning: "<repo-path>/migrate.py was modified by sibling subagent
 'sa-0-4626183c' but this agent never read it. Read the file before
 writing to avoid overwriting the sibling's changes."
 ```

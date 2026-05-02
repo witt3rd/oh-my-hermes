@@ -15,7 +15,7 @@ metadata:
     requires_toolsets: [terminal, omh]
 ---
 
-# OMH Ralplan Orchestration — driving the loop
+# OMH Ralplan Driver — driving the loop
 
 Load this skill alongside `omh-ralplan` when you are the orchestrator
 dispatching the loop. `omh-ralplan` is loaded by the Planner / Architect

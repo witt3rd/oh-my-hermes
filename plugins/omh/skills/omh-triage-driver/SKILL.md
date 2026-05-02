@@ -9,7 +9,7 @@ metadata:
     requires_toolsets: [terminal, omh, delegation]
 ---
 
-# OMH Triage Orchestration — Driving a Triage Run
+# OMH Triage Driver — Driving a Triage Run
 
 > **v0.1 status:** Like the worker skill (`omh-triage`), this dispatcher's playbook is deliberately small. Pitfalls accumulate through lived rounds. The `omh-ralplan-driver` skill is the structural model — that one shipped to 25 numbered pitfalls only after multiple real runs surfaced each failure mode. This one starts at T1–T6 and grows.
 

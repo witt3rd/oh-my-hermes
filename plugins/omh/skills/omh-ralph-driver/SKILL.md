@@ -19,7 +19,7 @@ metadata:
     requires_toolsets: [terminal, omh]
 ---
 
-# OMH Ralph Driving — orchestrator's playbook for verified execution
+# OMH Ralph Driver — orchestrator's playbook for verified execution
 
 Load this skill alongside `omh-ralph` when you are the orchestrator
 dispatching the loop. `omh-ralph` is loaded by the role-tagged
