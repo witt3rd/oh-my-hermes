@@ -36,10 +36,13 @@ What was avoided, what was caught, what landed.>
 
 ## Decisions you need from me
 
-<Numbered list. Each decision:
+<!-- Numbered list. Each decision:
 1. **<Decision name>** — <one-sentence framing of the choice>.
    <My take + the alternative.>
->
+-->
+1. **<Decision name>** — <one-sentence framing of the choice>.
+   *My take:* <recommendation>. *Alternative:* <what saying no looks like>.
+2. **<Decision name>** — ...
 
 (If decisions were already resolved in conversation before this brief
 was written, retitle this section "Decisions you needed to make

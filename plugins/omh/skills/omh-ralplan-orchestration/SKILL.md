@@ -954,9 +954,10 @@ turn-by-turn correction loop ralplan was built to avoid (P24).
 
 The orchestrator's deep review (`<orchestrator>-review-deep.md` —
 see step 5) is comprehensive: round tally, what-the-Critic-caught,
-where-I-push-back, where-I-think-the-user-will-push-back, what-this-
-run-proved-about-the-method, altitude addendum. It is honest. It is
-also **the wrong artifact to hand the user when you need a decision.**
+where-I-push-back, where-I-think-the-user-will-push-back,
+what-this-run-proved-about-the-method, altitude addendum. It is
+honest. It is also **the wrong artifact to hand the user when you
+need a decision.**
 
 The failure mode this pitfall names: the orchestrator writes a
 strong deep review, the user reads it, and the user reports being
@@ -1116,8 +1117,10 @@ interrupted, the next session reads this and resumes.
 - Canonical `stance.md` (or `requirements.md`) written, free of
   reviewer-scaffolding.
 - `.omh/plans/<file>.md` consensus summary written.
-- `<orchestrator>-review.md` written — honest, specific, not
-  performative.
+- `<orchestrator>-review-deep.md` written — honest, specific, not
+  performative (the archive / provenance artifact).
+- `brief.md` written — decisions-first, ~1 page, what the user
+  reads to give judgment (P26).
 - Single commit capturing the domain artifacts + state gitignore.
 - Commit message names: what the Critic caught, key positions
   landed, MV ready to execute on user sign-off.
