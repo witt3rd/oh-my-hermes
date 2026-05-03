@@ -1,6 +1,6 @@
 ---
 name: omh-triage
-description: "Multi-role consensus triage of an issue backlog (v0.1: Maintainer + Skeptic)"
+description: "Multi-role consensus triage of an issue backlog."
 version: 0.1.0
 metadata:
   hermes:

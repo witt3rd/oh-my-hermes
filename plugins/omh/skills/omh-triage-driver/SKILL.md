@@ -1,6 +1,6 @@
 ---
 name: omh-triage-driver
-description: "Dispatcher's playbook for omh-triage runs (when to invoke, how to drive)"
+description: "Drive omh-triage: when to invoke, how to run rounds."
 version: 0.1.0
 metadata:
   hermes:

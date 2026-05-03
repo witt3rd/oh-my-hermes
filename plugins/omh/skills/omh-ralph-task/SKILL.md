@@ -1,14 +1,15 @@
 ---
-name: omh-ralph-executor
-description: Executing a single omh-ralph task as the executor (not the dispatcher). The orchestrator hands you a tightly-scoped task envelope (files-you-own, files-other-tasks-own, acceptance criteria, TDD instruction, commit metadata, report shape) and expects a single commit + structured report back. Sibling-of-record to omh-ralph-driver (orchestration), omh-ralplan-driver (planning), omh-triage-driver (triage). Load when a turn opens with `[omh-role:executor]`, when an `omh-ralph` parent run dispatches a task to you, when the task envelope specifies "Files this task owns" + "DO NOT modify (sibling tasks own these)", when authoring the report-back the orchestrator will parse, or when reviewing whether your in-progress execution is still inside its lane. Carries the file-scope rigidity discipline, the stash-verify-against-HEAD move for isolating sibling-task failures from your own, the commit-author override pattern, and the structured-report shape the orchestrator depends on.
+name: omh-ralph-task
+description: "Execute one omh-ralph task: file-scope, commit, report."
 version: 1.0.0
 metadata:
   hermes:
+    category: omh
     tags: [omh, ralph, executor, multi-agent, kanban-adjacent]
     related_skills: [omh-ralplan-driver, omh-ralph-driver, omh-triage-driver]
 ---
 
-# omh-ralph executor — discipline
+# omh-ralph-task — executor discipline
 
 You are seeing this skill because an omh-ralph dispatcher (orchestrator) handed you a task envelope. You are the *executor*, not the dispatcher. Your job is narrow:
 
