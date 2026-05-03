@@ -9,7 +9,7 @@ metadata:
     related_skills: [omh-ralplan-driver, omh-ralph-driver, omh-triage-driver]
 ---
 
-# omh-ralph executor — discipline
+# omh-ralph-task — executor discipline
 
 You are seeing this skill because an omh-ralph dispatcher (orchestrator) handed you a task envelope. You are the *executor*, not the dispatcher. Your job is narrow:
 
