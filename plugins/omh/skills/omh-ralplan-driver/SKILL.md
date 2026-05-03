@@ -1,12 +1,6 @@
 ---
 name: omh-ralplan-driver
-description: >
-  How to drive an omh-ralplan run well as the dispatcher — from the
-  context package (where quality is born) through round dispatch,
-  distillation, and final review. Authoring the context package is
-  half this skill: the META question, seeded contests, required
-  reading discipline, and pre-flight pitfalls are what make the loop
-  produce truth instead of internal consistency.
+description: "Drive omh-ralplan: context package, rounds, distillation."
 version: 1.1.0
 metadata:
   hermes:

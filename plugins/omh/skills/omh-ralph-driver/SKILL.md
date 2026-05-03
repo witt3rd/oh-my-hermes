@@ -1,16 +1,6 @@
 ---
 name: omh-ralph-driver
-description: >
-  How to drive an omh-ralph run well as the dispatcher — plan-shape,
-  iteration cadence, parallel batching, evidence gathering, verifier
-  discipline, and commit hygiene across many iterations. The
-  iron-law of one-task-per-invocation is in omh-ralph itself; this
-  skill covers what the orchestrator does between invocations to
-  keep the loop moving cleanly: picking parallel-safe batches,
-  honoring "DO NOT modify <shared file>" discipline, distinguishing
-  executor strikes (test-infra vs spec-misread vs real bug),
-  Step-7 final architect review, and committing the loop to the
-  user's branch.
+description: "Drive an omh-ralph run: dispatch, evidence, commit hygiene."
 version: 1.0.0
 metadata:
   hermes:
