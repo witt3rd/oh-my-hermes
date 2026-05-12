@@ -1,17 +1,13 @@
 name: omh
 version: "0.1.0"
 description: "Oh My Hermes — infrastructure layer for OMH skills (state management, evidence gathering, mode awareness)"
-entry_point: plugin
-requires_python: ">=3.10"
+author: Donald Thompson
 
-tools:
+provides_tools:
   - omh_state
   - omh_gather_evidence
 
-hooks:
+provides_hooks:
   - pre_llm_call
   - on_session_end
   - pre_tool_call
-
-dependencies:
-  - pyyaml  # required for config.yaml loading
