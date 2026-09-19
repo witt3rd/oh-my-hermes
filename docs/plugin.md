@@ -9,7 +9,9 @@ Install to `~/.hermes/plugins/omh/`. Requires Python 3.10+ and `pyyaml`.
 
 ## Role Prompts
 
-Nine shared role prompts give subagents precise behavioral instructions:
+Shared role prompts give subagents precise behavioral instructions. The catalog
+is the source of truth — `plugins/omh/references/role-*.md`, enumerated at
+runtime by `get_role_catalog()`:
 
 | Role | Purpose | Used By |
 |------|---------|---------|
@@ -62,7 +64,7 @@ to see injection events:
 
 | Component | What It Does | Status |
 |-----------|-------------|--------|
-| `omh_state` tool (8 actions) | Atomic read/write/check/cancel for `.omh/` state files; `load_role` action for explicit role loading | Shipped |
+| `omh_state` tool (13 actions) | Atomic read/write/check/cancel for `.omh/` state files; `load_role` action for explicit role loading | Shipped |
 | `omh_gather_evidence` tool | Runs build/test/lint commands from an allowlist, captures + truncates output | Shipped |
 | `pre_llm_call` hook | Detects `[omh-role:NAME]` in subagent `user_message`; injects matching role prompt into system context | Shipped |
 | `pre_tool_call` hook | Validates `[omh-role:NAME]` markers in `delegate_task` goals before subagents start; warns on unknown roles | Shipped |

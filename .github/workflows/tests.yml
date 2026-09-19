@@ -1,0 +1,54 @@
+name: tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+# NOTE: no ${{ github.event.* }} expression is used anywhere below — every `run:`
+# block is static, so there is no workflow-injection surface here.
+
+jobs:
+  # Runs with no Hermes present. Covers the plugin's own logic: state engine,
+  # evidence tool, hook behaviour, role catalog. 8 tests skip without Hermes.
+  plugin-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test deps
+        # The only pip install in this workflow. Everything else uses a virtualenv,
+        # so an install here can never disturb a developer's interpreter.
+        run: pip install pyyaml pytest
+      - name: Run plugin test suite
+        run: python -m pytest plugins/omh/tests -q
+
+  # The contract tests. Hermes is imported from a real checkout so hook kwargs,
+  # registry scoping, and plugin loading are exercised against the host rather
+  # than a mock — every regression this job exists to catch was seam-level.
+  #
+  # Hermes's dependency set is NOT installed: the plugin imports only
+  # hermes_cli.plugins + tools.registry from it, which resolve against a bare
+  # stdlib+pyyaml interpreter (verified). Installing Hermes's full pinned
+  # dependency set would fight unrelated tooling for versions and buys nothing.
+  hermes-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Check out Hermes Agent
+        run: |
+          git clone --depth 1 https://github.com/NousResearch/hermes-agent.git \
+            "$HOME/.hermes/hermes-agent"
+      - name: Install plugin test deps
+        run: pip install pyyaml pytest
+      - name: Contract suite via the repo's own integration runner
+        # Runs from the repo root on purpose: the plugin package must resolve.
+        run: python plugins/omh/tests/integration_runner.py
+      - name: Contract suite via pytest
+        run: python -m pytest plugins/omh/tests/test_integration.py -q
+

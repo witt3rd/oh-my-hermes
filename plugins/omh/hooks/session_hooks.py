@@ -14,7 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 def on_session_end(**kwargs) -> None:
-    """Write _interrupted_at to all active OMH state files."""
+    """Write _interrupted_at to all active OMH state files.
+
+    Fires once per turn (Hermes's on_session_end is invoked from the turn
+    finalizer), so the stamp marks the last turn boundary, not a process exit.
+    """
     try:
         _invalidate_list_cache()  # Force fresh disk scan — avoids stale 5s cache at session boundary
         active = state_list_active()
@@ -31,16 +35,17 @@ def on_session_end(**kwargs) -> None:
 
     for m in modes:
         mode_name = m["mode"]
+        instance_id = m.get("instance_id")
         try:
-            result = state_read(mode_name)
+            result = state_read(mode_name, instance_id)
             if not result.get("exists"):
                 continue
             data = result["data"]
             if not data.get("active"):
                 continue
             data["_interrupted_at"] = interrupted_at
-            state_write(mode_name, data)
-            saved.append(mode_name)
+            state_write(mode_name, data, instance_id)
+            saved.append(f"{mode_name}--{instance_id}" if instance_id else mode_name)
         except Exception as e:
             logger.warning("on_session_end: failed to save %s: %s", mode_name, e)
 

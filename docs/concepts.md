@@ -76,7 +76,8 @@ Key mechanisms:
   (read-only), architect reviews holistically
 - **3-strike circuit breaker**: Same error fingerprint 3 times → stop and
   surface the fundamental issue
-- **Cancel signal**: `.omh/state/ralph-cancel.json` with 30-second TTL for
+- **Cancel signal**: `cancel_requested` in the mode's own state file, with a
+  30-second TTL for
   clean abort
 - **Learnings forward**: Completed task discoveries feed into subsequent
   executor context

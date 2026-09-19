@@ -7,7 +7,9 @@ and rebuilt natively for Hermes primitives.
 OMH provides composable skills for consensus planning, requirements
 interviewing, and verified execution — plus an optional plugin that adds
 hook-based role injection, atomic state management, and evidence gathering.
-Skills work standalone with zero dependencies.
+The skills work standalone (each that uses state documents a manual-JSON
+fallback); the three driver/composition playbooks — `omh-autopilot`,
+`omh-ralph-driver`, `omh-ralplan-driver` — assume the plugin is installed.
 
 | Skill | What It Does |
 |-------|--------------|
@@ -33,12 +35,16 @@ domain is unfamiliar; otherwise start at the interview.)
 
 ## Install
 
+Skills live at `plugins/omh/skills/` (sibling to the plugin), so install them by
+link or copy — there is no top-level `skills/` path for `hermes skills tap` to
+read:
+
 ```bash
-hermes skills tap add witt3rd/oh-my-hermes
-hermes skills install omh-deep-research omh-ralplan omh-ralplan-driver omh-deep-interview omh-ralph omh-ralph-driver omh-ralph-task omh-autopilot
+git clone https://github.com/witt3rd/oh-my-hermes.git
+ln -s "$PWD/oh-my-hermes/plugins/omh/skills" ~/.hermes/skills/omh
 ```
 
-Or copy `skills/<name>/` to `~/.hermes/skills/omh/` manually.
+Or copy `plugins/omh/skills/<name>/` to `~/.hermes/skills/omh/` manually.
 
 For the optional plugin: install `plugins/omh/` to `~/.hermes/plugins/omh/`
 (requires Python 3.10+ and `pyyaml`).

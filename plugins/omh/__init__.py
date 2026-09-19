@@ -24,6 +24,10 @@ def _install_skills(
 
     Skips skills that are already installed — the user's copy takes precedence.
     Uses an atomic copy-then-rename pattern to avoid partial installs.
+
+    Destination resolves through get_hermes_home(), so a test harness that points
+    HERMES_HOME at a temp dir (the convention in plugins/omh/tests/conftest.py)
+    redirects this install away from the developer's real skills directory.
     """
     if skills_dest_root is None:
         try:

@@ -217,49 +217,78 @@ def test_pre_tool_call_valid_role_passes(tmp_path, monkeypatch):
     monkeypatch.setattr("plugins.omh.omh_roles._REFERENCES_DIR", tmp_path)
 
     from plugins.omh.hooks.tool_hooks import pre_tool_call
+    # args= is the kwarg Hermes actually delivers (hermes_cli/plugins.py:1816).
     result = pre_tool_call(
         tool_name="delegate_task",
-        tool_input={"goal": "[omh-role:executor] Do it"},
+        args={"goal": "[omh-role:executor] Do it"},
     )
     assert result is None
 
 
-def test_pre_tool_call_unknown_role_warns(tmp_path, monkeypatch):
+def test_pre_tool_call_unknown_role_warns(tmp_path, monkeypatch, caplog):
     monkeypatch.setattr("plugins.omh.omh_roles._REFERENCES_DIR", tmp_path)
 
     from plugins.omh.hooks.tool_hooks import pre_tool_call
-    result = pre_tool_call(
-        tool_name="delegate_task",
-        tool_input={"goal": "[omh-role:ghost] Do it"},
-    )
-    assert result is not None
-    assert "WARNING" in result["context"]
-    assert "ghost" in result["context"]
-
-
-def test_pre_tool_call_no_marker_passes(tmp_path, monkeypatch):
-    monkeypatch.setattr("plugins.omh.omh_roles._REFERENCES_DIR", tmp_path)
-
-    from plugins.omh.hooks.tool_hooks import pre_tool_call
-    result = pre_tool_call(
-        tool_name="delegate_task",
-        tool_input={"goal": "Implement feature X"},
-    )
+    with caplog.at_level(logging.WARNING, logger="plugins.omh.hooks.tool_hooks"):
+        result = pre_tool_call(
+            tool_name="delegate_task",
+            args={"goal": "[omh-role:ghost] Do it"},
+        )
+    # Non-blocking: returns None. The warning is the observable effect.
     assert result is None
+    assert any("ghost" in r.message and "unknown role" in r.message for r in caplog.records)
+
+
+def test_pre_tool_call_real_hermes_kwarg_is_honoured(tmp_path, monkeypatch, caplog):
+    """Regression guard: the hook must read `args`, not an invented `tool_input`."""
+    monkeypatch.setattr("plugins.omh.omh_roles._REFERENCES_DIR", tmp_path)
+
+    from plugins.omh.hooks.tool_hooks import pre_tool_call
+    with caplog.at_level(logging.WARNING, logger="plugins.omh.hooks.tool_hooks"):
+        pre_tool_call(tool_name="delegate_task", args={"goal": "[omh-role:typo] x"})
+    assert any("unknown role" in r.message for r in caplog.records), (
+        "hook ignored the real Hermes `args=` kwarg"
+    )
+
+
+def test_pre_tool_call_batch_tasks_validated(tmp_path, monkeypatch, caplog):
+    """Batch delegate_task (tasks=[...]) goals are validated too."""
+    monkeypatch.setattr("plugins.omh.omh_roles._REFERENCES_DIR", tmp_path)
+
+    from plugins.omh.hooks.tool_hooks import pre_tool_call
+    with caplog.at_level(logging.WARNING, logger="plugins.omh.hooks.tool_hooks"):
+        pre_tool_call(
+            tool_name="delegate_task",
+            args={"tasks": [{"goal": "no marker"}, {"goal": "[omh-role:ghost] x"}]},
+        )
+    assert any("ghost" in r.message for r in caplog.records)
+
+
+def test_pre_tool_call_no_marker_passes(tmp_path, monkeypatch, caplog):
+    monkeypatch.setattr("plugins.omh.omh_roles._REFERENCES_DIR", tmp_path)
+
+    from plugins.omh.hooks.tool_hooks import pre_tool_call
+    with caplog.at_level(logging.WARNING, logger="plugins.omh.hooks.tool_hooks"):
+        result = pre_tool_call(
+            tool_name="delegate_task",
+            args={"goal": "Implement feature X"},
+        )
+    assert result is None
+    assert not caplog.records
 
 
 def test_pre_tool_call_non_delegate_ignored():
     from plugins.omh.hooks.tool_hooks import pre_tool_call
     result = pre_tool_call(
         tool_name="read_file",
-        tool_input={"path": "/foo/bar"},
+        args={"path": "/foo/bar"},
     )
     assert result is None
 
 
 def test_pre_tool_call_no_goal_passes():
     from plugins.omh.hooks.tool_hooks import pre_tool_call
-    result = pre_tool_call(tool_name="delegate_task", tool_input={})
+    result = pre_tool_call(tool_name="delegate_task", args={})
     assert result is None
 
 
@@ -337,11 +366,45 @@ def test_session_end_skips_inactive_mode(monkeypatch):
     )
     monkeypatch.setattr(
         "plugins.omh.hooks.session_hooks.state_read",
-        lambda mode: {"exists": True, "data": {"active": False}},
+        lambda mode, instance_id=None: {"exists": True, "data": {"active": False}},
     )
     monkeypatch.setattr("plugins.omh.hooks.session_hooks.state_write", mock_write)
     on_session_end()
     mock_write.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# session_hooks — per-instance modes keep their own file (regression)
+# ---------------------------------------------------------------------------
+
+def test_session_end_stamps_per_instance_mode(monkeypatch):
+    """Regression: instance_id must be threaded into read AND write.
+
+    state_list_active() reports {"mode", "instance_id"} for per-instance files;
+    dropping instance_id wrote the wrong file (and missed the instance's own).
+    """
+    seen = {}
+    mock_write = MagicMock()
+
+    def fake_read(mode, instance_id=None):
+        seen["read"] = (mode, instance_id)
+        return {"exists": True, "data": {"active": True, "phase": "search"}}
+
+    def fake_write(mode, data, instance_id=None):
+        seen["write"] = (mode, instance_id, data.get("_interrupted_at") is not None)
+
+    monkeypatch.setattr(
+        "plugins.omh.hooks.session_hooks.state_list_active",
+        lambda: {"modes": [{"mode": "deep-research", "instance_id": "topic-a"}]},
+    )
+    monkeypatch.setattr("plugins.omh.hooks.session_hooks.state_read", fake_read)
+    monkeypatch.setattr("plugins.omh.hooks.session_hooks.state_write", fake_write)
+
+    on_session_end()
+
+    assert seen["read"] == ("deep-research", "topic-a")
+    assert seen["write"][:2] == ("deep-research", "topic-a")
+    assert seen["write"][2] is True
 
 
 # ---------------------------------------------------------------------------
@@ -355,7 +418,7 @@ def test_session_end_handles_write_exception(monkeypatch, caplog):
     )
     monkeypatch.setattr(
         "plugins.omh.hooks.session_hooks.state_read",
-        lambda mode: {"exists": True, "data": {"active": True, "phase": "execute"}},
+        lambda mode, instance_id=None: {"exists": True, "data": {"active": True, "phase": "execute"}},
     )
     monkeypatch.setattr(
         "plugins.omh.hooks.session_hooks.state_write",
@@ -367,23 +430,19 @@ def test_session_end_handles_write_exception(monkeypatch, caplog):
 
 
 # ---------------------------------------------------------------------------
-# tool_hooks — tool_input is a JSON string
+# tool_hooks — malformed / unexpected args never raise
 # ---------------------------------------------------------------------------
 
-def test_pre_tool_call_json_string_input_no_role(tmp_path, monkeypatch):
+def test_pre_tool_call_non_dict_args_ignored(tmp_path, monkeypatch):
     monkeypatch.setattr("plugins.omh.omh_roles._REFERENCES_DIR", tmp_path)
     from plugins.omh.hooks.tool_hooks import pre_tool_call
-    result = pre_tool_call(
-        tool_name="delegate_task",
-        tool_input='{"goal": "do something without role marker"}',
-    )
-    assert result is None
+    assert pre_tool_call(tool_name="delegate_task", args="not a dict") is None
+    assert pre_tool_call(tool_name="delegate_task", args=None) is None
+    assert pre_tool_call(tool_name="delegate_task") is None
 
 
-def test_pre_tool_call_invalid_json_string_input():
+def test_pre_tool_call_malformed_tasks_ignored(tmp_path, monkeypatch):
+    monkeypatch.setattr("plugins.omh.omh_roles._REFERENCES_DIR", tmp_path)
     from plugins.omh.hooks.tool_hooks import pre_tool_call
-    result = pre_tool_call(
-        tool_name="delegate_task",
-        tool_input="not valid json {{{",
-    )
-    assert result is None
+    assert pre_tool_call(tool_name="delegate_task", args={"tasks": "nope"}) is None
+    assert pre_tool_call(tool_name="delegate_task", args={"tasks": [None, 5]}) is None

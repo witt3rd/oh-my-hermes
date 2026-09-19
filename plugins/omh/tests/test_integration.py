@@ -74,6 +74,21 @@ def _patch_all_config_modules(value):
             mod._config_cache = value
 
 
+def _tool_handler(name):
+    """Dispatch-ready handler for a plugin tool.
+
+    Plugin tools register under the active profile's scope
+    (PluginContext.register_tool -> registry.register(scope=hermes_home_key())),
+    so they are NOT in the legacy ``registry._tools`` dict. ``get_entry`` is the
+    scoped-aware accessor and is what production dispatch uses.
+    """
+    from tools.registry import registry
+
+    entry = registry.get_entry(name)
+    assert entry is not None, f"{name} is not registered (check plugin load)"
+    return entry.handler
+
+
 def _reset_all_list_caches():
     """Reset _list_cache on every omh_state module instance in sys.modules."""
     for key, mod in sys.modules.items():
@@ -84,13 +99,40 @@ def _reset_all_list_caches():
 
 @pytest.fixture
 def isolated_workdir(tmp_path, monkeypatch):
-    """Run in a temp directory so state files don't pollute the repo."""
+    """Run in a temp directory so state files don't pollute the repo.
+
+    Patches config AFTER any plugin load the test performs — see ``omh_plugin``,
+    which is what tests needing a loaded plugin should use. Patching here only
+    helps tests that import the plugin namespace themselves.
+    """
     monkeypatch.chdir(tmp_path)
     _patch_all_config_modules(dict(_TEST_CONFIG))
     _reset_all_list_caches()
     yield tmp_path
     _patch_all_config_modules(None)
     _reset_all_list_caches()
+
+
+@pytest.fixture
+def omh_plugin(plugin_dir, isolated_workdir):
+    """Load the OMH plugin through Hermes and return its PluginManager.
+
+    Order matters and is the whole point of this fixture: ``_load_plugin``
+    imports the plugin modules fresh, so any module that did not already exist
+    (notably under ``hermes_plugins.omh.*``) is created by the load and would
+    otherwise keep the real repo ``config.yaml`` — the fixture's temp config only
+    reaches module instances that already existed. Load first, then re-patch.
+    """
+    from hermes_cli.plugins import PluginManager, PluginManifest
+
+    manager = PluginManager()
+    manifest = PluginManifest(
+        name="omh", version="0.1.0", source="project", path=str(plugin_dir),
+    )
+    manager._load_plugin(manifest)
+    _patch_all_config_modules(dict(_TEST_CONFIG))
+    _reset_all_list_caches()
+    return manager
 
 
 # ---------------------------------------------------------------------------
@@ -136,17 +178,17 @@ def test_tools_registered_in_hermes_registry(plugin_dir):
     assert "omh_state" in manager._plugin_tool_names
     assert "omh_gather_evidence" in manager._plugin_tool_names
 
-    # Verify tools are in the global registry with correct toolset
+    # Verify tools resolve with the correct toolset via the scoped-aware accessor
     from tools.registry import registry
-    state_entry = registry._tools.get("omh_state")
-    assert state_entry is not None, "omh_state not found in tools.registry"
+    state_entry = registry.get_entry("omh_state")
+    assert state_entry is not None, "omh_state not resolvable via registry.get_entry"
     assert state_entry.toolset == "omh"
     assert callable(state_entry.handler)
     assert isinstance(state_entry.schema, dict)
     assert state_entry.schema.get("name") == "omh_state"
 
-    evidence_entry = registry._tools.get("omh_gather_evidence")
-    assert evidence_entry is not None, "omh_gather_evidence not found in tools.registry"
+    evidence_entry = registry.get_entry("omh_gather_evidence")
+    assert evidence_entry is not None, "omh_gather_evidence not resolvable via registry.get_entry"
     assert evidence_entry.toolset == "omh"
     assert callable(evidence_entry.handler)
     assert isinstance(evidence_entry.schema, dict)
@@ -177,60 +219,46 @@ def test_hooks_registered_in_hermes(plugin_dir):
 # ---------------------------------------------------------------------------
 
 @skip_no_hermes
-def test_omh_state_tool_dispatch_via_registry(plugin_dir, isolated_workdir):
+def test_omh_state_tool_dispatch_via_registry(omh_plugin):
     """Call omh_state handler through the Hermes registry and verify JSON response."""
-    from hermes_cli.plugins import PluginManager, PluginManifest
-    from tools.registry import registry
-
-    manager = PluginManager()
-    manifest = PluginManifest(name="omh", version="0.1.0", source="project", path=str(plugin_dir))
-    manager._load_plugin(manifest)
-
-    entry = registry._tools["omh_state"]
+    entry = _tool_handler("omh_state")
 
     # Write state
-    result = json.loads(entry.handler({"action": "write", "mode": "test-integ", "data": {"active": True, "phase": "testing"}}))
+    result = json.loads(entry({"action": "write", "mode": "test-integ", "data": {"active": True, "phase": "testing"}}))
     assert result["success"] is True
 
     # Read state back
-    result = json.loads(entry.handler({"action": "read", "mode": "test-integ"}))
+    result = json.loads(entry({"action": "read", "mode": "test-integ"}))
     assert result["exists"] is True
     assert result["data"]["active"] is True
     assert result["data"]["phase"] == "testing"
 
     # List active
-    result = json.loads(entry.handler({"action": "list"}))
+    result = json.loads(entry({"action": "list"}))
     assert any(m["mode"] == "test-integ" for m in result["modes"])
 
     # Check
-    result = json.loads(entry.handler({"action": "check", "mode": "test-integ"}))
+    result = json.loads(entry({"action": "check", "mode": "test-integ"}))
     assert result["active"] is True
 
     # Cancel
-    result = json.loads(entry.handler({"action": "cancel", "mode": "test-integ", "reason": "integration test"}))
+    result = json.loads(entry({"action": "cancel", "mode": "test-integ", "reason": "integration test"}))
     assert result["success"] is True
 
     # Cancel check
-    result = json.loads(entry.handler({"action": "cancel_check", "mode": "test-integ"}))
+    result = json.loads(entry({"action": "cancel_check", "mode": "test-integ"}))
     assert result["cancelled"] is True
 
     # Clear
-    result = json.loads(entry.handler({"action": "clear", "mode": "test-integ"}))
+    result = json.loads(entry({"action": "clear", "mode": "test-integ"}))
     assert result["cleared"] is True
 
 
 @skip_no_hermes
-def test_omh_evidence_tool_dispatch_via_registry(plugin_dir, isolated_workdir):
+def test_omh_evidence_tool_dispatch_via_registry(omh_plugin):
     """Call omh_gather_evidence handler through the Hermes registry."""
-    from hermes_cli.plugins import PluginManager, PluginManifest
-    from tools.registry import registry
-
-    manager = PluginManager()
-    manifest = PluginManifest(name="omh", version="0.1.0", source="project", path=str(plugin_dir))
-    manager._load_plugin(manifest)
-
-    entry = registry._tools["omh_gather_evidence"]
-    result = json.loads(entry.handler({"commands": ["echo integration-test"]}))
+    entry = _tool_handler("omh_gather_evidence")
+    result = json.loads(entry({"commands": ["echo integration-test"]}))
     assert "error" not in result
     assert result["all_pass"] is True
     assert result["results"][0]["output"].strip() == "integration-test"
@@ -241,18 +269,13 @@ def test_omh_evidence_tool_dispatch_via_registry(plugin_dir, isolated_workdir):
 # ---------------------------------------------------------------------------
 
 @skip_no_hermes
-def test_pre_llm_call_hook_via_invoke(plugin_dir, isolated_workdir):
+def test_pre_llm_call_hook_via_invoke(omh_plugin):
     """Test pre_llm_call returns context when modes are active."""
-    from hermes_cli.plugins import PluginManager, PluginManifest
-    from tools.registry import registry
-
-    manager = PluginManager()
-    manifest = PluginManifest(name="omh", version="0.1.0", source="project", path=str(plugin_dir))
-    manager._load_plugin(manifest)
+    manager = omh_plugin
 
     # Write an active mode
-    state_entry = registry._tools["omh_state"]
-    state_entry.handler({"action": "write", "mode": "ralph", "data": {"active": True, "phase": "execute"}})
+    state_entry = _tool_handler("omh_state")
+    state_entry({"action": "write", "mode": "ralph", "data": {"active": True, "phase": "execute"}})
 
     # Invoke hook — first turn
     from plugins.omh.omh_state import _invalidate_list_cache
@@ -274,18 +297,13 @@ def test_pre_llm_call_hook_via_invoke(plugin_dir, isolated_workdir):
 
 
 @skip_no_hermes
-def test_on_session_end_hook_via_invoke(plugin_dir, isolated_workdir):
+def test_on_session_end_hook_via_invoke(omh_plugin):
     """Test on_session_end writes _interrupted_at to active state files."""
-    from hermes_cli.plugins import PluginManager, PluginManifest
-    from tools.registry import registry
-
-    manager = PluginManager()
-    manifest = PluginManifest(name="omh", version="0.1.0", source="project", path=str(plugin_dir))
-    manager._load_plugin(manifest)
+    manager = omh_plugin
 
     # Write an active mode
-    state_entry = registry._tools["omh_state"]
-    state_entry.handler({"action": "write", "mode": "ralph", "data": {"active": True, "phase": "execute"}})
+    state_entry = _tool_handler("omh_state")
+    state_entry({"action": "write", "mode": "ralph", "data": {"active": True, "phase": "execute"}})
 
     # Invoke on_session_end
     from plugins.omh.omh_state import _invalidate_list_cache
@@ -293,8 +311,33 @@ def test_on_session_end_hook_via_invoke(plugin_dir, isolated_workdir):
     manager.invoke_hook("on_session_end")
 
     # Verify _interrupted_at was written
-    result = json.loads(state_entry.handler({"action": "read", "mode": "ralph"}))
+    result = json.loads(state_entry({"action": "read", "mode": "ralph"}))
     assert "_interrupted_at" in result["data"]
+
+
+@skip_no_hermes
+def test_on_session_end_stamps_instance_mode_via_invoke(omh_plugin):
+    """Regression: per-instance modes are stamped in their own file.
+
+    Mirrors the real failure — the hook listed a per-instance mode but wrote the
+    singleton path because instance_id was dropped.
+    """
+    manager = omh_plugin
+
+    state_entry = _tool_handler("omh_state")
+    state_entry({
+        "action": "write", "mode": "deep-research", "instance_id": "topic-a",
+        "data": {"active": True, "phase": "search"},
+    })
+
+    from plugins.omh.omh_state import _invalidate_list_cache
+    _invalidate_list_cache()
+    manager.invoke_hook("on_session_end")
+
+    inst = json.loads(state_entry({"action": "read", "mode": "deep-research", "instance_id": "topic-a"}))
+    assert "_interrupted_at" in inst["data"], "per-instance file was not stamped"
+    singleton = json.loads(state_entry({"action": "read", "mode": "deep-research"}))
+    assert not singleton["exists"], "singleton file must not be created"
 
 
 # ---------------------------------------------------------------------------

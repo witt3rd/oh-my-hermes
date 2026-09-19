@@ -12,6 +12,12 @@ import tempfile
 import traceback
 from pathlib import Path
 
+# Redirect the Hermes home BEFORE importing the plugin: loading it runs
+# register() -> _install_skills(), which would otherwise copy the bundled skills
+# into the developer's real ~/.hermes/skills/omh/. Same isolation the pytest suite
+# gets from conftest.py (this runner does not load conftest).
+os.environ["HERMES_HOME"] = tempfile.mkdtemp(prefix="omh-hermes-home-")
+
 # Add Hermes source to sys.path
 HERMES_AGENT_DIR = Path.home() / ".hermes" / "hermes-agent"
 if str(HERMES_AGENT_DIR) not in sys.path:
@@ -42,7 +48,13 @@ def test(name):
 
 
 def setup_workdir():
-    """Change to a temp directory and patch config for all loaded modules."""
+    """Change to a temp directory and patch config for all loaded modules.
+
+    Called AFTER load_plugin(): _load_plugin imports the plugin modules fresh, so
+    module instances created by that load (notably under hermes_plugins.omh.*)
+    would otherwise keep the real repo config.yaml — this patch only reaches
+    instances that already existed.
+    """
     tmpdir = tempfile.mkdtemp(prefix="omh-integ-")
     os.chdir(tmpdir)
     config = {
@@ -80,6 +92,20 @@ def load_plugin():
     return manager
 
 
+def tool_handler(name):
+    """Dispatch-ready handler for a plugin tool.
+
+    Plugin tools register under the active profile's scope
+    (PluginContext.register_tool -> registry.register(scope=hermes_home_key())),
+    so they are NOT in the legacy ``registry._tools`` dict. ``get_entry`` is the
+    scoped-aware accessor and is what production dispatch uses.
+    """
+    from tools.registry import registry
+    entry = registry.get_entry(name)
+    assert entry is not None, f"{name} not registered (check plugin load)"
+    return entry.handler, entry
+
+
 # ---- Tests ----------------------------------------------------------------
 
 print(f"\nOMH Plugin Integration Tests (Hermes venv: {sys.executable})")
@@ -88,7 +114,7 @@ print(f"Python: {sys.version}")
 print("-" * 60)
 
 manager = load_plugin()
-tmpdir = setup_workdir()
+tmpdir = setup_workdir()  # after load: patch the module instances the load created
 
 
 @test("Plugin loads without errors")
@@ -107,10 +133,8 @@ def _():
 
 @test("Tools have correct toolset='omh' in registry")
 def _():
-    from tools.registry import registry
     for name in ["omh_state", "omh_gather_evidence"]:
-        entry = registry._tools.get(name)
-        assert entry is not None, f"{name} not in registry"
+        _handler, entry = tool_handler(name)
         assert entry.toolset == "omh", f"{name} toolset={entry.toolset}"
         assert callable(entry.handler), f"{name} handler not callable"
         assert isinstance(entry.schema, dict), f"{name} schema not dict"
@@ -126,8 +150,7 @@ def _():
 
 @test("omh_state tool: write → read → list → check → cancel → clear")
 def _():
-    from tools.registry import registry
-    h = registry._tools["omh_state"].handler
+    h, _entry = tool_handler("omh_state")
 
     r = json.loads(h({"action": "write", "mode": "integ-test", "data": {"active": True, "phase": "testing"}}))
     assert r["success"] is True, f"write failed: {r}"
@@ -159,8 +182,7 @@ def _():
 
 @test("omh_gather_evidence tool: runs echo command")
 def _():
-    from tools.registry import registry
-    h = registry._tools["omh_gather_evidence"].handler
+    h, _entry = tool_handler("omh_gather_evidence")
     r = json.loads(h({"commands": ["echo integration-test"]}))
     assert "error" not in r, f"evidence error: {r}"
     assert r["all_pass"] is True
@@ -169,8 +191,7 @@ def _():
 
 @test("omh_gather_evidence tool: rejects disallowed commands")
 def _():
-    from tools.registry import registry
-    h = registry._tools["omh_gather_evidence"].handler
+    h, _entry = tool_handler("omh_gather_evidence")
     r = json.loads(h({"commands": ["rm -rf /"]}))
     assert r["all_pass"] is False
     assert r["results"][0]["passed"] is False
@@ -179,8 +200,7 @@ def _():
 
 @test("pre_llm_call hook: returns context when modes active")
 def _():
-    from tools.registry import registry
-    h = registry._tools["omh_state"].handler
+    h, _entry = tool_handler("omh_state")
     h({"action": "write", "mode": "ralph", "data": {"active": True, "phase": "execute"}})
 
     for key, mod in sys.modules.items():
@@ -197,8 +217,7 @@ def _():
 
 @test("on_session_end hook: writes _interrupted_at")
 def _():
-    from tools.registry import registry
-    h = registry._tools["omh_state"].handler
+    h, _entry = tool_handler("omh_state")
     h({"action": "write", "mode": "ralph", "data": {"active": True, "phase": "execute"}})
 
     for key, mod in sys.modules.items():
@@ -211,6 +230,26 @@ def _():
     assert "_interrupted_at" in r["data"], f"_interrupted_at not set: {r['data']}"
 
     h({"action": "clear", "mode": "ralph"})
+
+
+@test("on_session_end hook: stamps per-instance modes in their own file")
+def _():
+    h, _entry = tool_handler("omh_state")
+    h({"action": "write", "mode": "deep-research", "instance_id": "topic-a",
+       "data": {"active": True, "phase": "search"}})
+
+    for key, mod in sys.modules.items():
+        if key.endswith("omh_state") and hasattr(mod, "_list_cache"):
+            mod._list_cache["expires_at"] = 0.0
+
+    manager.invoke_hook("on_session_end")
+
+    inst = json.loads(h({"action": "read", "mode": "deep-research", "instance_id": "topic-a"}))
+    assert "_interrupted_at" in inst["data"], f"instance not stamped: {inst['data']}"
+    singleton = json.loads(h({"action": "read", "mode": "deep-research"}))
+    assert not singleton["exists"], "singleton file must not be created"
+
+    h({"action": "clear", "mode": "deep-research", "instance_id": "topic-a"})
 
 
 # ---- Summary -------------------------------------------------------------
