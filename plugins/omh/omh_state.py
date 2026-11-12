@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import re
+import sqlite3
 import stat
 import time
 import uuid
@@ -453,14 +454,14 @@ def state_lock_acquire(mode: str, lock_key: str, session_id: str | None = None,
             existing = _read_lock(path)
             held_pid = int(existing.get("pid") or 0)
             if held_pid and not _pid_alive(held_pid):
-                # Stale lock — remove and retry once.
-                logger.warning("Removing stale lock %s (pid=%d not alive)", path, held_pid)
+                # A second reclaimer may replace this path after our first read.
                 try:
-                    path.unlink()
-                except FileNotFoundError:
-                    pass
-                if attempt == 0:
+                    reclaimed = _reclaim_stale_lock(path)
+                except (OSError, sqlite3.Error) as exc:
+                    return {"acquired": False, "error": str(exc), "path": str(path)}
+                if reclaimed and attempt == 0:
                     continue
+                existing = _read_lock(path)
             return {
                 "acquired": False,
                 "held_by": existing,
@@ -482,6 +483,28 @@ def state_lock_acquire(mode: str, lock_key: str, session_id: str | None = None,
                 return {"acquired": False, "error": str(e), "path": str(path)}
     # Should be unreachable.
     return {"acquired": False, "path": str(path), "error": "lock acquire exhausted retries"}
+
+
+def _reclaim_stale_lock(path: Path) -> bool:
+    """Recheck a dead holder under an interprocess guard before unlinking.
+
+    The lock file itself is replaced with O_EXCL, so it cannot serve as a
+    stable mutex for stale-file removal. A sibling SQLite write transaction
+    serializes reclaimers without changing the ordinary uncontended path.
+    """
+    guard = path.parent / ".omh-lock-reclaim.sqlite3"
+    conn = sqlite3.connect(str(guard), timeout=5.0)
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        current = _read_lock(path)
+        pid = int(current.get("pid") or 0)
+        if not pid or _pid_alive(pid):
+            return False
+        logger.warning("Removing stale lock %s (pid=%d not alive)", path, pid)
+        path.unlink(missing_ok=True)
+        return True
+    finally:
+        conn.close()
 
 
 def _read_lock(path: Path) -> dict:
