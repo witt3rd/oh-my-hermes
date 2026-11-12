@@ -858,3 +858,45 @@ def test_handler_list_instances():
     out = json.loads(omh_state_handler({"action": "list_instances", "mode": "ralph"}))
     ids = {i["instance_id"] for i in out["instances"]}
     assert ids == {"p1", "p2"}
+
+
+def test_concurrent_stale_reclaim_does_not_remove_new_holder(monkeypatch):
+    """Two reclaimers must never both acquire after inspecting the same stale PID."""
+    import threading
+    import plugins.omh.omh_state as mod
+
+    stale_pid = 999_999_991
+    path = mod._lock_path("ralph", "stale-reclaim-race")
+    path.write_text(json.dumps({"pid": stale_pid, "session_id": "stale"}))
+    b_checked_stale = threading.Event()
+    let_b_continue = threading.Event()
+    real_pid_alive = mod._pid_alive
+
+    def coordinated_pid_alive(pid):
+        if pid == stale_pid:
+            if threading.current_thread().name == "claim-B":
+                b_checked_stale.set()
+                assert let_b_continue.wait(timeout=5), "timed out after stale read"
+            return False
+        return real_pid_alive(pid)
+
+    monkeypatch.setattr(mod, "_pid_alive", coordinated_pid_alive)
+    results = {}
+
+    def acquire(name):
+        results[name] = mod.state_lock_acquire("ralph", "stale-reclaim-race", session_id=name)
+
+    b = threading.Thread(target=acquire, name="claim-B", args=("B",))
+    a = threading.Thread(target=acquire, name="claim-A", args=("A",))
+    b.start()
+    assert b_checked_stale.wait(2), "B never observed the old stale lock"
+    a.start()
+    a.join(timeout=0.3)
+    let_b_continue.set()
+    a.join(timeout=4)
+    b.join(timeout=4)
+    assert not a.is_alive() and not b.is_alive()
+    assert set(results) == {"A", "B"}
+    winners = [name for name, result in results.items() if result["acquired"]]
+    assert len(winners) == 1, f"two sessions acquired the same lock: {results}"
+    assert mod.state_lock_check("ralph", "stale-reclaim-race")["holder"]["session_id"] == winners[0]
